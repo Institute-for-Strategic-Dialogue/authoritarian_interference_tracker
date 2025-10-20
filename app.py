@@ -4,13 +4,15 @@ import sqlite3
 from datetime import datetime, date
 from dateutil import parser
 from collections import defaultdict, Counter
-from flask import Flask, jsonify, render_template, request, send_from_directory, session, redirect, url_for, flash
+from flask import Flask, jsonify, render_template, request, send_from_directory, session, redirect, url_for, flash, Response, send_file
 import re
 from functools import wraps
 # remove: import requests
 from geopy.geocoders import Nominatim
 from urllib.parse import urlparse
 import re
+from io import StringIO, BytesIO
+import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")  # required for sessions
@@ -164,6 +166,22 @@ def collect_meta(incidents):
         "tools": sorted(tools.items(), key=lambda x: (-x[1], x[0])),
         "years": sorted(years.items())
     }
+    
+def build_filters_from_request(req):
+    def parse_multi(name):
+        v = req.args.get(name, "").strip()
+        return [s for s in v.split(",") if s] if v else []
+    start = req.args.get("start")
+    end   = req.args.get("end")
+    return {
+        "start": to_date(start) if start else None,
+        "end":   to_date(end) if end else None,
+        "actors":    parse_multi("actors"),
+        "countries": parse_multi("countries"),
+        "tools":     parse_multi("tools"),
+        "sources":   parse_multi("sources"),
+        "q": req.args.get("q", "").strip() or None
+    }
 
 def slugify(s: str) -> str:
     s = (s or "").strip().lower()
@@ -239,6 +257,20 @@ def get_or_create_tool(conn, name: str):
     )
     return cur.lastrowid
 
+def read_all_incidents():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT incident_id, post_id, slug, title, link, content_clean, excerpt_clean,
+               date_text, start_date, end_date, display, published_at,
+               countries, actors, tools,
+               source_domains, source_urls, source_count
+        FROM incidents_denorm
+        WHERE display IS NULL OR display <> 'hidden'
+    """)
+    rows = [incident_to_dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
 
 # ---------- Routes ----------
 @app.route("/")
@@ -633,6 +665,84 @@ def admin_delete_incident(incident_id):
         conn.close()
     return redirect(url_for("admin_incidents"))
 
+@app.route("/export/incidents.csv")
+def export_incidents_csv():
+    filters = build_filters_from_request(request)
+    incidents = [inc for inc in read_all_incidents() if filter_incident(inc, filters)]
+
+    # Flatten list fields into semicolon-joined strings
+    df = pd.DataFrame([{
+        "incident_id": inc.get("incident_id"),
+        "post_id":     inc.get("post_id"),
+        "slug":        inc.get("slug"),
+        "title":       inc.get("title"),
+        "link":        inc.get("link"),
+        "date_text":   inc.get("date_text"),
+        "start_date":  inc.get("start_date"),
+        "end_date":    inc.get("end_date"),
+        "published_at":inc.get("published_at"),
+        "countries":   "; ".join(inc.get("countries") or []),
+        "actors":      "; ".join(inc.get("actors") or []),
+        "tools":       "; ".join(inc.get("tools") or []),
+        "sources":     "; ".join(inc.get("sources") or []),
+        "source_urls": "; ".join(inc.get("source_urls") or []),
+        "source_count":inc.get("source_count"),
+        "excerpt_clean": inc.get("excerpt_clean"),
+        "content_clean": inc.get("content_clean"),
+    } for inc in incidents])
+
+    csv_buf = StringIO()
+    df.to_csv(csv_buf, index=False)
+    csv_data = csv_buf.getvalue().encode("utf-8-sig")  # BOM for Excel friendliness
+    filename = "incidents_export.csv"
+    return Response(
+        csv_data,
+        headers={
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        },
+    )
+
+@app.route("/export/incidents.xlsx")
+def export_incidents_xlsx():
+    filters = build_filters_from_request(request)
+    incidents = [inc for inc in read_all_incidents() if filter_incident(inc, filters)]
+
+    df = pd.DataFrame([{
+        "incident_id": inc.get("incident_id"),
+        "post_id":     inc.get("post_id"),
+        "slug":        inc.get("slug"),
+        "title":       inc.get("title"),
+        "link":        inc.get("link"),
+        "date_text":   inc.get("date_text"),
+        "start_date":  inc.get("start_date"),
+        "end_date":    inc.get("end_date"),
+        "published_at":inc.get("published_at"),
+        "countries":   "; ".join(inc.get("countries") or []),
+        "actors":      "; ".join(inc.get("actors") or []),
+        "tools":       "; ".join(inc.get("tools") or []),
+        "sources":     "; ".join(inc.get("sources") or []),
+        "source_urls": "; ".join(inc.get("source_urls") or []),
+        "source_count":inc.get("source_count"),
+        "excerpt_clean": inc.get("excerpt_clean"),
+        "content_clean": inc.get("content_clean"),
+    } for inc in incidents])
+
+    bio = BytesIO()
+    with pd.ExcelWriter(bio, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="incidents")
+        # optional niceties: freeze header + autofilter
+        ws = writer.sheets["incidents"]
+        ws.auto_filter.ref = ws.dimensions
+        ws.freeze_panes = "A2"
+    bio.seek(0)
+    filename = "incidents_export.xlsx"
+    return send_file(
+        bio,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)

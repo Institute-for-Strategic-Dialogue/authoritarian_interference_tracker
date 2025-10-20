@@ -185,7 +185,7 @@
           <div class="grid2">
             <div class="frow">
               <label>Threat Actors (multi-select)</label>
-              <select name="actors_sel" multiple size="8" style="...">
+              <select name="actors_sel" multiple size="8" style="">
                 {% for a in actors %}
                 <option value="{{ a }}" {% if incident and a in sel_actors %}selected{% endif %}>{{ a }}</option>
                 {% endfor %}
@@ -198,7 +198,7 @@
 
             <div class="frow">
               <label>Incident Types (multi-select)</label>
-              <select name="tools_sel" multiple size="8" style="...">
+              <select name="tools_sel" multiple size="8" style="">
                 {% for t in tools %}
                 <option value="{{ t }}" {% if incident and t in sel_tools %}selected{% endif %}>{{ t }}</option>
                 {% endfor %}

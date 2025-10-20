@@ -40,6 +40,7 @@ html, body { margin: 0; padding: 0; background: var(--bg-soft); color: var(--tex
 }
 .filters .ghost { padding: .5rem .8rem; border: 1px solid #ddd; background: white; border-radius: .5rem; cursor: pointer; }
 .filters .ghost:hover { border-color: var(--primary-color); color: var(--primary-color); }
+.ghost-primary { border-color: var(--accent-purple); color: var(--accent-purple); }
 
 .applied { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
 .chip {

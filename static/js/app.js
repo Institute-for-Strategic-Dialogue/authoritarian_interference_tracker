@@ -117,6 +117,7 @@ async function refresh() {
   renderStacked(data.stacked);
   renderMap(data.country_actor, data.country_meta);
   renderList(data.incidents);
+  updateExportLinks();   
 }
 
 /* ---------------- Applied filters chips ---------------- */
@@ -498,6 +499,13 @@ function extractDomain(url) {
     return url; // fallback if URL parsing fails
   }
 }
+
+function updateExportLinks(){
+  const qs = currentParams();
+  $("#exportCsv")?.setAttribute("href", `/export/incidents.csv?${qs}`);
+  $("#exportXlsx")?.setAttribute("href", `/export/incidents.xlsx?${qs}`);
+}
+
 
 function toggleSet(set, val) {
   if (set.has(val)) set.delete(val); else set.add(val);
