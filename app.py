@@ -299,7 +299,7 @@ def api_config():
         "actor_palette": {
             "Russia": "#0d47a1",
             "China": "#8b0000",
-            "Iran": "#9b51e0",
+            "Iran": "#239f40",
             "Other": "#444444",
             "Unknown": "#7f7f7f"
         }

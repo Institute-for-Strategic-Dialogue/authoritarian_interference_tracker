@@ -4,15 +4,17 @@
   --card-radius: .75rem;
   --shadow: 0 2px 16px rgba(0,0,0,.06);
 
-  --primary-color: #cf2e2e;
-  --accent-orange: #ff6900;
+  --primary-color: #C7074D;
+  --secondary-color: #5C6771;
+  --accent-orange: #E76863;
   --accent-yellow: #fcb900;
   --accent-green: #7bdcb5;
   --accent-teal: #00d084;
   --accent-lightblue: #8ed1fc;
-  --accent-blue: #0693e3;
-  --accent-purple: #9b51e0;
+  --accent-blue: #0068B2;
+  --accent-purple: #4C4193;
   --accent-pink: #f78da7;
+  --accent-gray: #B4B2B1;
 
   /* Threat-actor defaults (fix: use values, not 'background:') */
   --ta-russia: #0d47a1;
