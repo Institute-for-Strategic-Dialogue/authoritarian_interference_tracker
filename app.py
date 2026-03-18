@@ -1,748 +1,442 @@
-import json
+"""AIT Public Frontend — fetches from Incident Manager API, serves visualizations."""
+
 import os
-import sqlite3
+import time
+from collections import Counter, defaultdict
 from datetime import datetime, date
-from dateutil import parser
-from collections import defaultdict, Counter
-from flask import Flask, jsonify, render_template, request, send_from_directory, session, redirect, url_for, flash, Response, send_file
-import re
-from functools import wraps
-# remove: import requests
-from geopy.geocoders import Nominatim
-from urllib.parse import urlparse
-import re
-from io import StringIO, BytesIO
+from io import BytesIO, StringIO
+
+import httpx
 import pandas as pd
+from flask import (
+    Flask, Response, jsonify, redirect, render_template, request,
+    send_file, session, url_for,
+)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")  # required for sessions
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "changeme")          # set in env for prod
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
-ALLOW_EXTERNAL_GEOCODING = os.environ.get("ALLOW_EXTERNAL_GEOCODING", "0") == "1"
-NOMINATIM_USER_AGENT = os.environ.get("NOMINATIM_USER_AGENT", "ait-admin/1.0")
-DB_PATH = os.environ.get("DB_PATH", "./data/incidents.sqlite")
+IM_URL = os.environ.get("INCIDENT_MANAGER_URL", "http://localhost:6003")
+REVIEW_UI_URL = os.environ.get("REVIEW_UI_URL", "http://localhost:6004")
 
-# init geopy (lazy-safe)
-_geocoder = None
-def geocoder():
-    global _geocoder
-    if _geocoder is None:
-        _geocoder = Nominatim(user_agent=NOMINATIM_USER_AGENT, timeout=8)
-    return _geocoder
+# ---------------------------------------------------------------------------
+# Mappings
+# ---------------------------------------------------------------------------
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+TOOL_DISPLAY = {
+    "cyber_operations": "Cyber Operations",
+    "kinetic_operations": "Kinetic Operations",
+    "information_manipulation": "Information Operations",
+    "malign_finance": "Malign Finance",
+    "civil_society_subversion": "Civil Society Subversion",
+    "economic_coercion": "Economic Coercion",
+}
 
-# ---------- Utilities ----------
-def to_date(s):
-    if not s:
-        return None
+ACTOR_DISPLAY = {
+    "russia": "Russia", "china": "China", "iran": "Iran",
+    "north_korea": "North Korea", "belarus": "Belarus",
+}
+
+COUNTRY_NAMES = {
+    "AL": "Albania", "AT": "Austria", "AU": "Australia", "BA": "Bosnia and Herzegovina",
+    "BE": "Belgium", "BG": "Bulgaria", "BY": "Belarus", "CA": "Canada",
+    "CH": "Switzerland", "CY": "Cyprus", "CZ": "Czech Republic", "DE": "Germany",
+    "DK": "Denmark", "EE": "Estonia", "ES": "Spain", "FI": "Finland",
+    "FR": "France", "GB": "United Kingdom", "GE": "Georgia", "GR": "Greece",
+    "HR": "Croatia", "HU": "Hungary", "IE": "Ireland", "IS": "Iceland",
+    "IT": "Italy", "LT": "Lithuania", "LU": "Luxembourg", "LV": "Latvia",
+    "MD": "Moldova", "ME": "Montenegro", "MK": "North Macedonia", "MT": "Malta",
+    "NL": "Netherlands", "NO": "Norway", "NZ": "New Zealand", "PL": "Poland",
+    "PT": "Portugal", "RO": "Romania", "RS": "Serbia", "SE": "Sweden",
+    "SI": "Slovenia", "SK": "Slovakia", "TR": "Turkey", "UA": "Ukraine",
+    "US": "United States", "XK": "Kosovo",
+}
+
+COUNTRY_CENTROIDS = {
+    "Albania": {"lat": 41.15, "lon": 20.17}, "Austria": {"lat": 47.52, "lon": 14.55},
+    "Australia": {"lat": -25.27, "lon": 133.78}, "Bosnia and Herzegovina": {"lat": 43.92, "lon": 17.68},
+    "Belgium": {"lat": 50.50, "lon": 4.47}, "Bulgaria": {"lat": 42.73, "lon": 25.49},
+    "Belarus": {"lat": 53.71, "lon": 27.95}, "Canada": {"lat": 56.13, "lon": -106.35},
+    "Switzerland": {"lat": 46.82, "lon": 8.23}, "Cyprus": {"lat": 35.13, "lon": 33.43},
+    "Czech Republic": {"lat": 49.82, "lon": 15.47}, "Germany": {"lat": 51.17, "lon": 10.45},
+    "Denmark": {"lat": 56.26, "lon": 9.50}, "Estonia": {"lat": 58.60, "lon": 25.01},
+    "Spain": {"lat": 40.46, "lon": -3.75}, "Finland": {"lat": 61.92, "lon": 25.75},
+    "France": {"lat": 46.23, "lon": 2.21}, "United Kingdom": {"lat": 55.38, "lon": -3.44},
+    "Georgia": {"lat": 42.32, "lon": 43.36}, "Greece": {"lat": 39.07, "lon": 21.82},
+    "Croatia": {"lat": 45.10, "lon": 15.20}, "Hungary": {"lat": 47.16, "lon": 19.50},
+    "Ireland": {"lat": 53.14, "lon": -7.69}, "Iceland": {"lat": 64.96, "lon": -19.02},
+    "Italy": {"lat": 41.87, "lon": 12.57}, "Lithuania": {"lat": 55.17, "lon": 23.88},
+    "Luxembourg": {"lat": 49.82, "lon": 6.13}, "Latvia": {"lat": 56.88, "lon": 24.60},
+    "Moldova": {"lat": 47.41, "lon": 28.37}, "Montenegro": {"lat": 42.71, "lon": 19.37},
+    "North Macedonia": {"lat": 41.51, "lon": 21.75}, "Malta": {"lat": 35.94, "lon": 14.38},
+    "Netherlands": {"lat": 52.13, "lon": 5.29}, "Norway": {"lat": 60.47, "lon": 8.47},
+    "New Zealand": {"lat": -40.90, "lon": 174.89}, "Poland": {"lat": 51.92, "lon": 19.15},
+    "Portugal": {"lat": 39.40, "lon": -8.22}, "Romania": {"lat": 45.94, "lon": 24.97},
+    "Serbia": {"lat": 44.02, "lon": 21.01}, "Sweden": {"lat": 60.13, "lon": 18.64},
+    "Slovenia": {"lat": 46.15, "lon": 14.99}, "Slovakia": {"lat": 48.67, "lon": 19.70},
+    "Turkey": {"lat": 38.96, "lon": 35.24}, "Ukraine": {"lat": 48.38, "lon": 31.17},
+    "United States": {"lat": 37.09, "lon": -95.71}, "Kosovo": {"lat": 42.60, "lon": 20.90},
+}
+
+REGION_GROUPS = {
+    "EU": ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE",
+           "IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE"],
+    "NATO": ["AL","BE","BG","CA","HR","CZ","DK","EE","FR","DE","GR","HU","IS","IT",
+             "LV","LT","LU","ME","NL","MK","NO","PL","PT","RO","SK","SI","ES","TR",
+             "GB","US"],
+    "OSCE": ["AL","AT","BA","BE","BG","CA","CH","CY","CZ","DE","DK","EE","ES","FI",
+             "FR","GB","GE","GR","HR","HU","IE","IS","IT","LT","LU","LV","MD","ME",
+             "MK","MT","NL","NO","NZ","PL","PT","RO","RS","SE","SI","SK","TR","UA","US"],
+    "Five Eyes": ["AU","CA","GB","NZ","US"],
+    "Europe": ["AL","AT","BA","BE","BG","BY","CH","CY","CZ","DE","DK","EE","ES","FI",
+               "FR","GB","GE","GR","HR","HU","IE","IS","IT","LT","LU","LV","MD","ME",
+               "MK","MT","NL","NO","PL","PT","RO","RS","SE","SI","SK","TR","UA","XK"],
+    "North America": ["US","CA"],
+}
+
+# ---------------------------------------------------------------------------
+# Incident cache (avoid hitting IM API on every request)
+# ---------------------------------------------------------------------------
+
+_cache = {"data": None, "ts": 0}
+CACHE_TTL = 60  # seconds
+
+
+def _fetch_all_incidents() -> list[dict]:
+    """Fetch all approved non-hidden incidents from Incident Manager, with caching."""
+    now = time.time()
+    if _cache["data"] is not None and (now - _cache["ts"]) < CACHE_TTL:
+        return _cache["data"]
+
     try:
-        return parser.parse(s).date()
-    except Exception:
-        return None
+        resp = httpx.get(
+            f"{IM_URL}/incidents/export",
+            params={"status": "approved"},
+            timeout=30.0,
+        )
+        resp.raise_for_status()
+        raw = resp.json()
+    except Exception as e:
+        app.logger.error(f"Failed to fetch incidents: {e}")
+        return _cache["data"] or []
 
-def split_csv(s):
-    """Accept comma-separated string OR list; always return a clean list."""
-    if s is None:
-        return []
-    if isinstance(s, list):
-        return [str(x).strip() for x in s if str(x).strip()]
-    # string path
-    s = str(s)
-    if not s.strip():
-        return []
-    return [part.strip() for part in s.split(",") if part.strip()]
-
-def extract_domain(url: str) -> str:
-    try:
-        host = urlparse(url).netloc.lower()
-        if host.startswith("www."): host = host[4:]
-        return host
-    except Exception:
-        return ""
-
-def split_and_clean_urls(val):
-    """Accept CSV/semicolon/newline; return unique cleaned URL list."""
-    if not val: return []
-    if isinstance(val, list): parts = val
-    else: parts = re.split(r"[,\n;]+", str(val))
-    out = []
-    for p in parts:
-        p = p.strip()
-        if p:
-            # simple scheme add for bare domains
-            if "://" not in p and "." in p:
-                p = "https://" + p
-            out.append(p)
-    return sorted(set(out))
-
-def get_or_create_source(conn, url: str):
-    """Ensure sources(url, domain) exists; return id."""
-    if not url: return None
-    dom = extract_domain(url)
-    cur = conn.cursor()
-    row = cur.execute("SELECT id FROM sources WHERE url = ?", (url,)).fetchone()
-    if row: return row["id"]
-    cur.execute("INSERT INTO sources (url, domain) VALUES (?, ?)", (url, dom))
-    return cur.lastrowid
-
-
-def load_centroids_from_db():
-    conn = get_db()
-    conn.row_factory = sqlite3.Row
-    cur = conn.execute("SELECT name, lat, lon FROM countries WHERE lat IS NOT NULL AND lon IS NOT NULL")
-    data = {}
-    for row in cur.fetchall():
-        # ensure floats
-        try:
-            lat = float(row["lat"])
-            lon = float(row["lon"])
-        except (TypeError, ValueError):
+    incidents = []
+    for inc in raw:
+        if inc.get("hidden"):
             continue
-        data[row["name"]] = {"lat": lat, "lon": lon}
-    conn.close()
-    return data
+        incidents.append(_transform(inc))
 
-def filter_incident(inc, filters):
-    """Apply in-Python filters because VIEW returns CSV fields."""
-    # Date range
-    start = filters.get("start")
-    end = filters.get("end")
-    d = to_date(inc.get("start_date")) or to_date(inc.get("date_text"))
-    if start and d and d < start: return False
-    if end and d and d > end: return False
+    # Sort reverse chronological
+    incidents.sort(key=lambda x: x.get("start_year") or 0, reverse=True)
 
-    # Actors / Countries / Tools (incident types)
-    if filters.get("actors"):
-        if not set(split_csv(inc.get("actors"))).intersection(filters["actors"]):
-            return False
-    if filters.get("countries"):
-        if not set(split_csv(inc.get("countries"))).intersection(filters["countries"]):
-            return False
-    if filters.get("tools"):
-        if not set(split_csv(inc.get("tools"))).intersection(filters["tools"]):
-            return False
-    if filters.get("sources"):
-        if not set(split_csv(inc.get("sources"))).intersection(filters["sources"]):
-            return False
+    _cache["data"] = incidents
+    _cache["ts"] = now
+    return incidents
 
-    # Search text (title + content + excerpt)
-    q = filters.get("q")
-    if q:
-        hay = " ".join([
-            (inc.get("title") or ""), (inc.get("content_clean") or ""), (inc.get("excerpt_clean") or "")
-        ]).lower()
-        if q.lower() not in hay:
-            return False
-    return True
 
-def incident_to_dict(row):
-    d = dict(row)
-    # normalize for frontend
-    d["countries"] = split_csv(d.get("countries"))
-    d["actors"]    = split_csv(d.get("actors"))
-    d["tools"]     = split_csv(d.get("tools"))
-    d["sources"]     = split_csv(d.get("source_domains")) if "source_domains" in d else []
-    d["source_urls"] = split_csv(d.get("source_urls"))    if "source_urls" in d else []
-    return d
+def _transform(inc: dict) -> dict:
+    """Transform an Incident Manager API response into frontend format."""
+    actors = [ACTOR_DISPLAY.get(a, a.title()) for a in (inc.get("threat_actors") or [])]
+    countries = [COUNTRY_NAMES.get(c, c) for c in (inc.get("target_countries") or [])]
+    tools = [TOOL_DISPLAY.get(t, t.replace("_", " ").title()) for t in (inc.get("incident_types") or [])]
 
-def collect_meta(incidents):
-    actors = Counter()
-    countries = Counter()
-    tools = Counter()
-    years = Counter()
+    start_date = inc.get("start_date")
+    end_date = inc.get("end_date")
+    start_year = int(start_date[:4]) if start_date else None
+    end_year = int(end_date[:4]) if end_date else None
+
+    return {
+        "id": inc.get("id"),
+        "title": inc.get("title", ""),
+        "summary": inc.get("summary", ""),
+        "slug": _slugify(inc.get("title", "")),
+        "actors": actors,
+        "countries": countries,
+        "country_codes": inc.get("target_countries") or [],
+        "tools": tools,
+        "start_year": start_year,
+        "end_year": end_year,
+        "date_display": _date_display(start_year, end_year),
+        "source_urls": inc.get("source_urls") or [],
+        "source_count": inc.get("source_count", 0),
+        "confidence_score": inc.get("confidence_score"),
+        "campaign_name": inc.get("campaign_name"),
+        "attribution_basis": inc.get("attribution_basis"),
+        "review_status": inc.get("review_status"),
+    }
+
+
+def _date_display(start_year, end_year):
+    if start_year and end_year:
+        return f"{start_year} — {end_year}" if start_year != end_year else str(start_year)
+    if start_year:
+        return f"{start_year} — ongoing"
+    return "Unknown"
+
+
+def _slugify(s):
+    import re
+    s = s.lower().strip()
+    s = re.sub(r"[^\w\s-]", "", s)
+    s = re.sub(r"[\s_-]+", "-", s)
+    return s.strip("-")[:80]
+
+
+def _year_range(start_year, end_year):
+    """Return list of years an incident spans (for volume-over-time)."""
+    current_year = datetime.now().year
+    s = start_year or current_year
+    e = end_year or current_year
+    return list(range(s, e + 1))
+
+
+def _filter_incidents(incidents, filters):
+    out = []
+    for inc in incidents:
+        if filters.get("q"):
+            hay = f"{inc['title']} {inc['summary']}".lower()
+            if filters["q"].lower() not in hay:
+                continue
+        if filters.get("actors"):
+            if not set(inc["actors"]).intersection(filters["actors"]):
+                continue
+        if filters.get("countries"):
+            if not set(inc["countries"]).intersection(filters["countries"]):
+                continue
+        if filters.get("tools"):
+            if not set(inc["tools"]).intersection(filters["tools"]):
+                continue
+        if filters.get("start"):
+            if (inc["start_year"] or 9999) < filters["start"]:
+                continue
+        if filters.get("end"):
+            if (inc["start_year"] or 0) > filters["end"]:
+                continue
+        if filters.get("region"):
+            region_codes = set(REGION_GROUPS.get(filters["region"], []))
+            if not set(inc.get("country_codes", [])).intersection(region_codes):
+                continue
+        out.append(inc)
+    return out
+
+
+def _collect_meta(incidents):
+    actors, countries, tools, years = Counter(), Counter(), Counter(), Counter()
     for inc in incidents:
         for a in inc["actors"]: actors[a] += 1
         for c in inc["countries"]: countries[c] += 1
         for t in inc["tools"]: tools[t] += 1
-        dy = to_date(inc.get("start_date")) or to_date(inc.get("date_text"))
-        if dy: years[dy.year] += 1
+        if inc["start_year"]: years[inc["start_year"]] += 1
     return {
         "actors": sorted(actors.items(), key=lambda x: (-x[1], x[0])),
         "countries": sorted(countries.items(), key=lambda x: (-x[1], x[0])),
         "tools": sorted(tools.items(), key=lambda x: (-x[1], x[0])),
-        "years": sorted(years.items())
-    }
-    
-def build_filters_from_request(req):
-    def parse_multi(name):
-        v = req.args.get(name, "").strip()
-        return [s for s in v.split(",") if s] if v else []
-    start = req.args.get("start")
-    end   = req.args.get("end")
-    return {
-        "start": to_date(start) if start else None,
-        "end":   to_date(end) if end else None,
-        "actors":    parse_multi("actors"),
-        "countries": parse_multi("countries"),
-        "tools":     parse_multi("tools"),
-        "sources":   parse_multi("sources"),
-        "q": req.args.get("q", "").strip() or None
+        "years": sorted(years.items()),
+        "regions": list(REGION_GROUPS.keys()),
     }
 
-def slugify(s: str) -> str:
-    s = (s or "").strip().lower()
-    s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"[\s_-]+", "-", s)
-    return s.strip("-")
 
-def login_required(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not session.get("admin"):
-            return redirect(url_for("admin_login", next=request.path))
-        return fn(*args, **kwargs)
-    return wrapper
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
-def split_and_clean_csv(val):
-    if not val:
-        return []
-    if isinstance(val, list):
-        vals = val
-    else:
-        vals = re.split(r"[;,]", str(val))
-    return sorted({v.strip() for v in vals if v and v.strip()})
-
-def geocode_country_external(name: str):
-    """Optional Nominatim via geopy. Returns (lat, lon) or (None, None)."""
-    if not ALLOW_EXTERNAL_GEOCODING or not name:
-        return None, None
-    try:
-        loc = geocoder().geocode(name, exactly_one=True)
-        if loc:
-            return float(loc.latitude), float(loc.longitude)
-    except Exception:
-        pass
-    return None, None
-
-def get_or_create_country(conn, name: str):
-    cur = conn.cursor()
-    row = cur.execute("SELECT id, lat, lon FROM countries WHERE name = ?", (name,)).fetchone()
-    if row:
-        cid = row["id"]
-        if (row["lat"] is None or row["lon"] is None):
-            lat, lon = geocode_country_external(name)
-            if lat is not None and lon is not None:
-                cur.execute("UPDATE countries SET lat = ?, lon = ? WHERE id = ?", (lat, lon, cid))
-        return cid
-    lat, lon = geocode_country_external(name)
-    cur.execute("INSERT INTO countries (name, lat, lon) VALUES (?, ?, ?)", (name, lat, lon))
-    return cur.lastrowid
-
-def get_or_create_actor(conn, name: str):
-    cur = conn.cursor()
-    row = cur.execute("SELECT id FROM actors WHERE name = ?", (name,)).fetchone()
-    if row:
-        return row["id"]
-    # generate a unique term_id
-    next_term = cur.execute("SELECT COALESCE(MAX(term_id), 0) + 1 FROM actors").fetchone()[0]
-    cur.execute(
-        "INSERT INTO actors (term_id, name, slug, taxonomy, description) VALUES (?, ?, ?, ?, ?)",
-        (next_term, name, slugify(name), "threat_actor", None),
-    )
-    return cur.lastrowid
-
-def get_or_create_tool(conn, name: str):
-    cur = conn.cursor()
-    row = cur.execute("SELECT id FROM tools WHERE name = ?", (name,)).fetchone()
-    if row:
-        return row["id"]
-    next_term = cur.execute("SELECT COALESCE(MAX(term_id), 0) + 1 FROM tools").fetchone()[0]
-    cur.execute(
-        "INSERT INTO tools (term_id, name, slug, taxonomy, description) VALUES (?, ?, ?, ?, ?)",
-        (next_term, name, slugify(name), "incident_type", None),
-    )
-    return cur.lastrowid
-
-def read_all_incidents():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT incident_id, post_id, slug, title, link, content_clean, excerpt_clean,
-               date_text, start_date, end_date, display, published_at,
-               countries, actors, tools,
-               source_domains, source_urls, source_count
-        FROM incidents_denorm
-        WHERE display IS NULL OR display <> 'hidden'
-    """)
-    rows = [incident_to_dict(r) for r in cur.fetchall()]
-    conn.close()
-    return rows
-
-# ---------- Routes ----------
 @app.route("/")
 def index():
     is_admin = session.get("admin", False)
     return render_template("index.html", is_admin=is_admin)
 
+
 @app.route("/api/config")
 def api_config():
-    # Color tokens + actor palette (extend as needed)
-    config = {
+    return jsonify({
         "colors": {
-            "primary": "#cf2e2e",
-            "accent_orange": "#ff6900",
-            "accent_yellow": "#fcb900",
-            "accent_green": "#7bdcb5",
-            "accent_teal": "#00d084",
-            "accent_lightblue": "#8ed1fc",
-            "accent_blue": "#0693e3",
-            "accent_purple": "#9b51e0",
-            "accent_pink": "#f78da7",
-            "ta_russia": "#0d47a1",
-            "ta_china": "#8b0000"
+            "primary": "#C7074D",
+            "accent_orange": "#E76863", "accent_yellow": "#D4A843",
+            "accent_green": "#3A8A6E", "accent_teal": "#2B7A6B",
+            "accent_lightblue": "#5B9FCC", "accent_blue": "#0068B2",
+            "accent_purple": "#4C4193", "accent_pink": "#D4587A",
+            "ta_russia": "#0068B2", "ta_china": "#C7074D",
         },
-        # default actor colors; add more at will
         "actor_palette": {
-            "Russia": "#0d47a1",
-            "China": "#8b0000",
-            "Iran": "#239f40",
-            "Other": "#444444",
-            "Unknown": "#7f7f7f"
-        }
-    }
-    return jsonify(config)
+            "Russia": "#0068B2", "China": "#C7074D",
+            "Iran": "#3A8A6E", "North Korea": "#D4A843",
+            "Belarus": "#5C6771", "Other": "#B4B2B1", "Unknown": "#B4B2B1",
+        },
+    })
 
-def read_all_incidents():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT incident_id, post_id, slug, title, link, content_clean, excerpt_clean,
-               date_text, start_date, end_date, display, published_at,
-               countries, actors, tools, source_urls
-        FROM incidents_denorm
-        WHERE display IS NULL OR display <> 'hidden'
-    """)
-    rows = [incident_to_dict(r) for r in cur.fetchall()]
-    conn.close()
-    return rows
 
 @app.route("/api/meta")
 def api_meta():
-    incidents = read_all_incidents()
-    meta = collect_meta(incidents)
-    return jsonify(meta)
+    incidents = _fetch_all_incidents()
+    return jsonify(_collect_meta(incidents))
+
 
 @app.route("/api/incidents")
 def api_incidents():
-    # Parse filters
+    start_raw = request.args.get("start")
+    end_raw = request.args.get("end")
+
     def parse_multi(name):
         v = request.args.get(name, "").strip()
-        return [s for s in v.split(",") if s] if v else []
+        return [s.strip() for s in v.split(",") if s.strip()] if v else []
 
-    start = request.args.get("start")
-    end = request.args.get("end")
     filters = {
-        "start": to_date(start) if start else None,
-        "end": to_date(end) if end else None,
+        "start": int(start_raw) if start_raw else None,
+        "end": int(end_raw) if end_raw else None,
         "actors": parse_multi("actors"),
         "countries": parse_multi("countries"),
-        "tools": parse_multi("tools"), 
-        "sources":   parse_multi("sources"),
-# "incident types" from tools field
-        "q": request.args.get("q", "").strip() or None
+        "tools": parse_multi("tools"),
+        "q": request.args.get("q", "").strip() or None,
+        "region": request.args.get("region", "").strip() or None,
     }
+
     page = max(1, int(request.args.get("page", 1)))
     page_size = min(100, int(request.args.get("page_size", 25)))
 
-    incidents = read_all_incidents()
-    filtered = [inc for inc in incidents if filter_incident(inc, filters)]
+    all_incidents = _fetch_all_incidents()
+    filtered = _filter_incidents(all_incidents, filters)
 
-    # Aggregations for widgets
-    # heatmap: counts by (year, actor)
-    heatmap = defaultdict(lambda: defaultdict(int))
+    # --- Volume over time (replaces heatmap) ---
+    vol = defaultdict(lambda: defaultdict(int))
     for inc in filtered:
-        y = to_date(inc.get("start_date")) or to_date(inc.get("date_text"))
-        if not y: continue
-        year = y.year
-        for a in (inc["actors"] or ["Unknown"]):
-            heatmap[year][a] += 1
-    heatmap_rows = []
-    for year, bucket in heatmap.items():
-        for actor, count in bucket.items():
-            heatmap_rows.append({"year": year, "actor": actor, "count": count})
+        years = _year_range(inc["start_year"], inc["end_year"])
+        for y in years:
+            for a in (inc["actors"] or ["Unknown"]):
+                vol[y][a] += 1
+    volume_rows = [{"year": y, "actor": a, "count": c}
+                   for y, bucket in sorted(vol.items()) for a, c in bucket.items()]
 
-    # stacked bar: tools x actor
+    # --- Stacked bar: tools x actor ---
     tba = defaultdict(lambda: defaultdict(int))
     for inc in filtered:
-        tools = inc["tools"] or ["Unspecified"]
-        actors = inc["actors"] or ["Unknown"]
-        for t in tools:
-            for a in actors:
+        for t in (inc["tools"] or ["Unspecified"]):
+            for a in (inc["actors"] or ["Unknown"]):
                 tba[t][a] += 1
-    stacked_rows = []
-    for tool, bucket in tba.items():
-        for actor, count in bucket.items():
-            stacked_rows.append({"tool": tool, "actor": actor, "count": count})
+    stacked_rows = [{"tool": t, "actor": a, "count": c}
+                    for t, bucket in tba.items() for a, c in bucket.items()]
 
-    # country x actor counts (for map donuts)
+    # --- Country x actor (for map) ---
     cxa = defaultdict(lambda: defaultdict(int))
     for inc in filtered:
-        cs = inc["countries"] or ["Unassigned"]
-        as_ = inc["actors"] or ["Unknown"]
-        for c in cs:
-            for a in as_:
+        for c in (inc["countries"] or []):
+            for a in (inc["actors"] or ["Unknown"]):
                 cxa[c][a] += 1
-    country_rows = []
-    total_by_country = {}
-    for country, bucket in cxa.items():
-        tot = sum(bucket.values())
-        total_by_country[country] = tot
-        for actor, count in bucket.items():
-            country_rows.append({"country": country, "actor": actor, "count": count})
+    country_rows = [{"country": c, "actor": a, "count": cnt}
+                    for c, bucket in cxa.items() for a, cnt in bucket.items()]
 
-    # paging
+    # Pagination
     total = len(filtered)
     start_idx = (page - 1) * page_size
-    end_idx = start_idx + page_size
-    page_items = filtered[start_idx:end_idx]
-
-    # attach country metadata (lat/lon/region/ subregion)
-    centroids = load_centroids_from_db()
+    page_items = filtered[start_idx: start_idx + page_size]
 
     return jsonify({
         "total": total,
         "page": page,
         "page_size": page_size,
         "incidents": page_items,
-        "heatmap": heatmap_rows,
+        "volume_over_time": volume_rows,
         "stacked": stacked_rows,
         "country_actor": country_rows,
-        "country_meta": centroids
+        "country_meta": COUNTRY_CENTROIDS,
     })
 
-# Static helper to serve the centroids stub if needed
-@app.route("/static/data/<path:filename>")
-def static_data(filename):
-    return send_from_directory("static/data", filename)
 
-@app.route("/admin/login", methods=["GET", "POST"])
-def admin_login():
-    err = None
-    if request.method == "POST":
-        pw = request.form.get("password", "")
-        if pw == ADMIN_PASSWORD:
-            session["admin"] = True
-            flash("Logged in.", "ok")
-            return redirect(request.args.get("next") or url_for("admin_new_incident"))
-        err = "Incorrect password."
-    return render_template("admin_login.html", err=err)
+@app.route("/incident/<path:identifier>")
+def incident_detail(identifier):
+    """Individual incident page — matches by UUID or slug."""
+    incidents = _fetch_all_incidents()
+    # Try UUID match first, then slug match
+    inc = next((i for i in incidents if i["id"] == identifier), None)
+    if inc is None:
+        inc = next((i for i in incidents if i.get("slug") == identifier), None)
+    if inc is None:
+        return "Incident not found", 404
+    if "application/json" in (request.headers.get("Accept") or ""):
+        return jsonify(inc)
+    return render_template("index.html", is_admin=session.get("admin", False),
+                           prefill_incident=inc)
 
-@app.route("/admin/logout")
-def admin_logout():
-    session.clear()
-    flash("Logged out.", "ok")
-    return redirect(url_for("index"))
 
-@app.route("/admin/new-incident", methods=["GET", "POST"])
-@login_required
-def admin_new_incident():
-    conn = get_db()
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
+@app.route("/sitemap.xml")
+def sitemap():
+    incidents = _fetch_all_incidents()
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>',
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    xml.append(f'  <url><loc>{request.host_url}</loc><priority>1.0</priority></url>')
+    for inc in incidents:
+        slug = inc.get("slug") or inc["id"]
+        xml.append(f'  <url><loc>{request.host_url}incident/{slug}</loc></url>')
+    xml.append('</urlset>')
+    return Response("\n".join(xml), mimetype="application/xml")
 
-    # preload lists for the form
-    countries = cur.execute("SELECT name FROM countries ORDER BY name").fetchall()
-    actors = cur.execute("SELECT name FROM actors ORDER BY name").fetchall()
-    tools = cur.execute("SELECT name FROM tools ORDER BY name").fetchall()
 
-    if request.method == "POST":
-        try:
-            post_id = int(request.form["post_id"])
-            title = request.form["title"].strip()
-            link = request.form.get("link") or None
-            content = request.form.get("content_clean") or None
-            excerpt = request.form.get("excerpt_clean") or None
-            date_text = request.form.get("date_text") or None
-            start_date = request.form.get("start_date") or None
-            end_date = request.form.get("end_date") or None
-            display = 1 if request.form.get("display", "on") == "on" else 0
+@app.route("/ait_admin")
+def ait_admin():
+    return redirect(REVIEW_UI_URL)
 
-            # selections from multi-selects
-            sel_actors = request.form.getlist("actors_sel")  # multi-select of existing actors
-            sel_tools  = request.form.getlist("tools_sel")   # multi-select of existing tools
 
-            sel_sources = split_and_clean_urls(request.form.get("sources_urls"))
+# ---------------------------------------------------------------------------
+# Exports
+# ---------------------------------------------------------------------------
 
-           
-            sel_countries = split_and_clean_csv(request.form.get("countries_csv"))
+def _build_export_df(filters):
+    all_inc = _fetch_all_incidents()
+    filtered = _filter_incidents(all_inc, filters)
+    return pd.DataFrame([{
+        "id": inc["id"],
+        "title": inc["title"],
+        "start_year": inc["start_year"],
+        "end_year": inc["end_year"],
+        "actors": "; ".join(inc["actors"]),
+        "countries": "; ".join(inc["countries"]),
+        "incident_types": "; ".join(inc["tools"]),
+        "source_urls": "; ".join(inc["source_urls"]),
+        "source_count": inc["source_count"],
+        "summary": inc["summary"],
+        "attribution_basis": inc["attribution_basis"],
+        "campaign_name": inc["campaign_name"],
+        "confidence_score": inc["confidence_score"],
+    } for inc in filtered])
 
-            # optional new items (comma/semicolon)
-            new_actors = split_and_clean_csv(request.form.get("new_actors"))
-            new_tools  = split_and_clean_csv(request.form.get("new_tools"))
 
-            # union and de-dup
-            sel_actors = sorted(set(sel_actors) | set(new_actors))
-            sel_tools  = sorted(set(sel_tools)  | set(new_tools))
+def _parse_export_filters():
+    def pm(n):
+        v = request.args.get(n, "").strip()
+        return [s.strip() for s in v.split(",") if s.strip()] if v else []
+    s = request.args.get("start")
+    e = request.args.get("end")
+    return {
+        "start": int(s) if s else None, "end": int(e) if e else None,
+        "actors": pm("actors"), "countries": pm("countries"),
+        "tools": pm("tools"), "q": request.args.get("q", "").strip() or None,
+        "region": request.args.get("region", "").strip() or None,
+    }
 
-            # insert incident
-            cur.execute("""
-                INSERT INTO incidents (post_id, title, link, content_clean, excerpt_clean, date_text, start_date, end_date, display)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (post_id, title, link, content, excerpt, date_text, start_date, end_date, display))
-            incident_id = cur.lastrowid
-
-            # relate countries (create if missing; auto-geocode if allowed)
-            for c in sel_countries:
-                if not c: continue
-                cid = get_or_create_country(conn, c)
-                cur.execute("INSERT OR IGNORE INTO incident_countries (incident_id, country_id) VALUES (?, ?)", (incident_id, cid))
-
-            # relate actors (create if missing)
-            for a in sel_actors:
-                if not a: continue
-                aid = get_or_create_actor(conn, a)
-                cur.execute("INSERT OR IGNORE INTO incident_actors (incident_id, actor_id) VALUES (?, ?)", (incident_id, aid))
-
-            # relate tools (create if missing)
-            for t in sel_tools:
-                if not t: continue
-                tid = get_or_create_tool(conn, t)
-                cur.execute("INSERT OR IGNORE INTO incident_tools (incident_id, tool_id) VALUES (?, ?)", (incident_id, tid))
-
-             # after inserting the base incident and linking countries/actors/tools:
-            for u in sel_sources:
-                sid = get_or_create_source(conn, u)
-                if sid:
-                    cur.execute("INSERT OR IGNORE INTO incident_sources (incident_id, source_id) VALUES (?, ?)", (incident_id, sid))
-                        # countries still from CSV box (kept as-is)
-                        
-            conn.commit()
-            flash(f"Incident #{incident_id} created.", "ok")
-            return redirect(url_for("admin_new_incident"))
-
-        except sqlite3.IntegrityError as e:
-            conn.rollback()
-            # likely duplicate post_id or FK issue
-            flash(f"DB error: {e}", "err")
-        except Exception as e:
-            conn.rollback()
-            flash(f"Unexpected error: {e}", "err")
-
-    return render_template(
-        "admin_new_incident.html",
-        countries=[r["name"] for r in countries],
-        actors=[r["name"] for r in actors],
-        tools=[r["name"] for r in tools],
-        allow_external_geocoding=ALLOW_EXTERNAL_GEOCODING
-    )
-    
-@app.route("/admin/incidents")
-@login_required
-def admin_incidents():
-    conn = get_db(); conn.row_factory = sqlite3.Row
-    rows = conn.execute("""
-        SELECT id, post_id, title, start_date
-        FROM incidents
-        ORDER BY COALESCE(start_date, date_text) DESC, id DESC
-        LIMIT 1000
-    """).fetchall()
-    conn.close()
-    return render_template("admin_list.html", items=rows)
-
-@app.route("/admin/incident/<int:incident_id>/edit", methods=["GET","POST"])
-@login_required
-def admin_edit_incident(incident_id):
-    conn = get_db(); conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    # preload vocab
-    countries_all = [r["name"] for r in cur.execute("SELECT name FROM countries ORDER BY name").fetchall()]
-    actors_all    = [r["name"] for r in cur.execute("SELECT name FROM actors ORDER BY name").fetchall()]
-    tools_all     = [r["name"] for r in cur.execute("SELECT name FROM tools ORDER BY name").fetchall()]
-
-    # fetch incident + relations
-    inc = cur.execute("SELECT * FROM incidents WHERE id = ?", (incident_id,)).fetchone()
-    if not inc:
-        flash("Incident not found.", "err")
-        return redirect(url_for("admin_incidents"))
-
-    countries = [r["name"] for r in cur.execute("""
-        SELECT c.name FROM incident_countries ic JOIN countries c ON c.id=ic.country_id
-        WHERE ic.incident_id = ? ORDER BY c.name
-    """, (incident_id,)).fetchall()]
-    actors = [r["name"] for r in cur.execute("""
-        SELECT a.name FROM incident_actors ia JOIN actors a ON a.id=ia.actor_id
-        WHERE ia.incident_id = ? ORDER BY a.name
-    """, (incident_id,)).fetchall()]
-    tools = [r["name"] for r in cur.execute("""
-        SELECT t.name FROM incident_tools it JOIN tools t ON t.id=it.tool_id
-        WHERE it.incident_id = ? ORDER BY t.name
-    """, (incident_id,)).fetchall()]
-    source_urls = [r["url"] for r in cur.execute("""
-        SELECT s.url FROM incident_sources xis JOIN sources s ON s.id=xis.source_id
-        WHERE xis.incident_id = ? ORDER BY s.domain
-    """, (incident_id,)).fetchall()]
-
-    if request.method == "POST":
-        try:
-            post_id    = int(request.form["post_id"])
-            title      = request.form["title"].strip()
-            link       = request.form.get("link") or None
-            content    = request.form.get("content_clean") or None
-            excerpt    = request.form.get("excerpt_clean") or None
-            date_text  = request.form.get("date_text") or None
-            start_date = request.form.get("start_date") or None
-            end_date   = request.form.get("end_date") or None
-            display    = 1 if request.form.get("display", "on") == "on" else 0
-
-            # selections (multi-selects + “add new”)
-            sel_actors = request.form.getlist("actors_sel")
-            sel_tools  = request.form.getlist("tools_sel")
-            new_actors = split_and_clean_csv(request.form.get("new_actors"))
-            new_tools  = split_and_clean_csv(request.form.get("new_tools"))
-            sel_actors = sorted(set(sel_actors) | set(new_actors))
-            sel_tools  = sorted(set(sel_tools) | set(new_tools))
-
-            sel_countries = split_and_clean_csv(request.form.get("countries_csv"))
-            sel_sources   = split_and_clean_urls(request.form.get("sources_urls"))
-
-            # update base record
-            cur.execute("""
-                UPDATE incidents
-                   SET post_id=?, title=?, link=?, content_clean=?, excerpt_clean=?, date_text=?, start_date=?, end_date=?, display=?
-                 WHERE id=?
-            """, (post_id, title, link, content, excerpt, date_text, start_date, end_date, display, incident_id))
-
-            # reset junctions
-            cur.execute("DELETE FROM incident_countries WHERE incident_id=?", (incident_id,))
-            cur.execute("DELETE FROM incident_actors    WHERE incident_id=?", (incident_id,))
-            cur.execute("DELETE FROM incident_tools     WHERE incident_id=?", (incident_id,))
-            cur.execute("DELETE FROM incident_sources   WHERE incident_id=?", (incident_id,))
-
-            # reinsert
-            for c in sel_countries:
-                cid = get_or_create_country(conn, c)
-                cur.execute("INSERT OR IGNORE INTO incident_countries (incident_id, country_id) VALUES (?, ?)", (incident_id, cid))
-            for a in sel_actors:
-                aid = get_or_create_actor(conn, a)
-                cur.execute("INSERT OR IGNORE INTO incident_actors (incident_id, actor_id) VALUES (?, ?)", (incident_id, aid))
-            for t in sel_tools:
-                tid = get_or_create_tool(conn, t)
-                cur.execute("INSERT OR IGNORE INTO incident_tools (incident_id, tool_id) VALUES (?, ?)", (incident_id, tid))
-            for u in sel_sources:
-                sid = get_or_create_source(conn, u)
-                if sid:
-                    cur.execute("INSERT OR IGNORE INTO incident_sources (incident_id, source_id) VALUES (?, ?)", (incident_id, sid))
-
-            conn.commit()
-            flash(f"Incident #{incident_id} updated.", "ok")
-            return redirect(url_for("admin_edit_incident", incident_id=incident_id))
-        except Exception as e:
-            conn.rollback()
-            flash(f"Update failed: {e}", "err")
-
-    # render form prefilled
-    return render_template(
-        "admin_new_incident.html",
-        # same template, but with 'incident' populated
-        incident=inc,
-        countries=countries_all,
-        actors=actors_all,
-        tools=tools_all,
-        sel_countries="; ".join(countries),
-        sel_sources="\n".join(source_urls),
-        sel_actors=actors,
-        sel_tools=tools,
-        allow_external_geocoding=ALLOW_EXTERNAL_GEOCODING
-    )
-
-@app.route("/admin/incident/<int:incident_id>/delete", methods=["POST"])
-@login_required
-def admin_delete_incident(incident_id):
-    conn = get_db()
-    try:
-        conn.execute("DELETE FROM incidents WHERE id = ?", (incident_id,))
-        conn.commit()
-        flash(f"Incident #{incident_id} deleted.", "ok")
-    except Exception as e:
-        conn.rollback()
-        flash(f"Delete failed: {e}", "err")
-    finally:
-        conn.close()
-    return redirect(url_for("admin_incidents"))
 
 @app.route("/export/incidents.csv")
-def export_incidents_csv():
-    filters = build_filters_from_request(request)
-    incidents = [inc for inc in read_all_incidents() if filter_incident(inc, filters)]
+def export_csv():
+    df = _build_export_df(_parse_export_filters())
+    buf = StringIO()
+    df.to_csv(buf, index=False)
+    return Response(buf.getvalue().encode("utf-8-sig"), headers={
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="ait_incidents.csv"',
+    })
 
-    # Flatten list fields into semicolon-joined strings
-    df = pd.DataFrame([{
-        "incident_id": inc.get("incident_id"),
-        "post_id":     inc.get("post_id"),
-        "slug":        inc.get("slug"),
-        "title":       inc.get("title"),
-        "link":        inc.get("link"),
-        "date_text":   inc.get("date_text"),
-        "start_date":  inc.get("start_date"),
-        "end_date":    inc.get("end_date"),
-        "published_at":inc.get("published_at"),
-        "countries":   "; ".join(inc.get("countries") or []),
-        "actors":      "; ".join(inc.get("actors") or []),
-        "tools":       "; ".join(inc.get("tools") or []),
-        "sources":     "; ".join(inc.get("sources") or []),
-        "source_urls": "; ".join(inc.get("source_urls") or []),
-        "source_count":inc.get("source_count"),
-        "excerpt_clean": inc.get("excerpt_clean"),
-        "content_clean": inc.get("content_clean"),
-    } for inc in incidents])
-
-    csv_buf = StringIO()
-    df.to_csv(csv_buf, index=False)
-    csv_data = csv_buf.getvalue().encode("utf-8-sig")  # BOM for Excel friendliness
-    filename = "incidents_export.csv"
-    return Response(
-        csv_data,
-        headers={
-            "Content-Type": "text/csv; charset=utf-8",
-            "Content-Disposition": f'attachment; filename="{filename}"'
-        },
-    )
 
 @app.route("/export/incidents.xlsx")
-def export_incidents_xlsx():
-    filters = build_filters_from_request(request)
-    incidents = [inc for inc in read_all_incidents() if filter_incident(inc, filters)]
-
-    df = pd.DataFrame([{
-        "incident_id": inc.get("incident_id"),
-        "post_id":     inc.get("post_id"),
-        "slug":        inc.get("slug"),
-        "title":       inc.get("title"),
-        "link":        inc.get("link"),
-        "date_text":   inc.get("date_text"),
-        "start_date":  inc.get("start_date"),
-        "end_date":    inc.get("end_date"),
-        "published_at":inc.get("published_at"),
-        "countries":   "; ".join(inc.get("countries") or []),
-        "actors":      "; ".join(inc.get("actors") or []),
-        "tools":       "; ".join(inc.get("tools") or []),
-        "sources":     "; ".join(inc.get("sources") or []),
-        "source_urls": "; ".join(inc.get("source_urls") or []),
-        "source_count":inc.get("source_count"),
-        "excerpt_clean": inc.get("excerpt_clean"),
-        "content_clean": inc.get("content_clean"),
-    } for inc in incidents])
-
+def export_xlsx():
+    df = _build_export_df(_parse_export_filters())
     bio = BytesIO()
-    with pd.ExcelWriter(bio, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="incidents")
-        # optional niceties: freeze header + autofilter
-        ws = writer.sheets["incidents"]
+    with pd.ExcelWriter(bio, engine="openpyxl") as w:
+        df.to_excel(w, index=False, sheet_name="incidents")
+        ws = w.sheets["incidents"]
         ws.auto_filter.ref = ws.dimensions
         ws.freeze_panes = "A2"
     bio.seek(0)
-    filename = "incidents_export.xlsx"
-    return send_file(
-        bio,
-        as_attachment=True,
-        download_name=filename,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    return send_file(bio, as_attachment=True, download_name="ait_incidents.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
