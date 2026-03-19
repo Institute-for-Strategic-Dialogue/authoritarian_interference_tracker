@@ -19,6 +19,9 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 IM_URL = os.environ.get("INCIDENT_MANAGER_URL", "http://localhost:6003")
 REVIEW_UI_URL = os.environ.get("REVIEW_UI_URL", "http://localhost:6004")
 
+# Persistent HTTP client — reuses connections instead of leaking them
+_http_client = httpx.Client(timeout=30.0, limits=httpx.Limits(max_connections=10, max_keepalive_connections=5))
+
 # ---------------------------------------------------------------------------
 # Mappings
 # ---------------------------------------------------------------------------
@@ -95,8 +98,30 @@ REGION_GROUPS = {
 }
 
 # ---------------------------------------------------------------------------
-# Incident cache (avoid hitting IM API on every request)
+# Caches (avoid hitting IM API on every request)
 # ---------------------------------------------------------------------------
+
+# Stats cache — context processor hits this on every page load
+_stats_cache = {"data": None, "ts": 0}
+STATS_CACHE_TTL = 120  # seconds
+
+
+def _fetch_stats() -> dict:
+    """Cached stats fetch for the context processor."""
+    now = time.time()
+    if _stats_cache["data"] is not None and (now - _stats_cache["ts"]) < STATS_CACHE_TTL:
+        return _stats_cache["data"]
+    try:
+        resp = _http_client.get(f"{IM_URL}/incidents/stats")
+        resp.raise_for_status()
+        _stats_cache["data"] = resp.json()
+        _stats_cache["ts"] = now
+    except Exception:
+        pass
+    return _stats_cache["data"] or {}
+
+
+# Incident data cache
 
 _cache = {"data": None, "ts": 0}
 CACHE_TTL = 60  # seconds
@@ -109,10 +134,9 @@ def _fetch_all_incidents() -> list[dict]:
         return _cache["data"]
 
     try:
-        resp = httpx.get(
+        resp = _http_client.get(
             f"{IM_URL}/incidents/export",
             params={"status": "approved"},
-            timeout=30.0,
         )
         resp.raise_for_status()
         raw = resp.json()
@@ -436,6 +460,57 @@ def export_xlsx():
     bio.seek(0)
     return send_file(bio, as_attachment=True, download_name="ait_incidents.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+# ---------------------------------------------------------------------------
+# Debug / monitoring endpoints
+# ---------------------------------------------------------------------------
+
+@app.route("/debug/health")
+def debug_health():
+    """Quick health check — no external calls."""
+    import gc
+    import resource
+    mem_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024  # Linux: KB -> MB
+    return jsonify({
+        "status": "ok",
+        "memory_mb": round(mem_mb, 1),
+        "cache_incidents": len(_cache.get("data") or []),
+        "cache_age_s": round(time.time() - _cache["ts"], 1) if _cache["ts"] else None,
+        "stats_cache_age_s": round(time.time() - _stats_cache["ts"], 1) if _stats_cache["ts"] else None,
+        "gc_counts": gc.get_count(),
+        "gc_objects": len(gc.get_objects()),
+    })
+
+
+@app.route("/debug/memory")
+def debug_memory():
+    """Memory snapshot using tracemalloc."""
+    import tracemalloc
+    if not tracemalloc.is_tracing():
+        tracemalloc.start()
+        return jsonify({"status": "tracemalloc started, refresh in 30s for snapshot"})
+
+    snapshot = tracemalloc.take_snapshot()
+    top = snapshot.statistics("lineno")[:20]
+    return jsonify({
+        "current_mb": round(tracemalloc.get_traced_memory()[0] / 1024 / 1024, 2),
+        "peak_mb": round(tracemalloc.get_traced_memory()[1] / 1024 / 1024, 2),
+        "top_allocations": [
+            {"file": str(s.traceback), "size_kb": round(s.size / 1024, 1), "count": s.count}
+            for s in top
+        ],
+    })
+
+
+@app.route("/debug/connections")
+def debug_connections():
+    """Check httpx connection pool status."""
+    pool = _http_client._transport._pool
+    return jsonify({
+        "connections_in_pool": len(pool._connections) if hasattr(pool, '_connections') else "unknown",
+        "requests_count": getattr(pool, '_request_count', 'unknown'),
+    })
 
 
 if __name__ == "__main__":
