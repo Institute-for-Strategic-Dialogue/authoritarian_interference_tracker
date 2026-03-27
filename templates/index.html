@@ -56,28 +56,24 @@
         <div id="actor-pills" class="pill-group"></div>
       </div>
 
-      <!-- Target country + Region + Years -->
+      <!-- Target country + Region + Years + actions -->
       <div class="filter-row filter-row--selects">
-        <div class="filter-field">
-          <label class="filter-label" for="country-select">Target Country</label>
+        <div class="filter-field filter-field--inline">
+          <label class="filter-label" for="country-select">Country</label>
           <select id="country-select"><option value="">All countries</option></select>
         </div>
-        <div class="filter-field">
-          <label class="filter-label" for="region-select">Region / Org</label>
+        <div class="filter-field filter-field--inline">
+          <label class="filter-label" for="region-select">Region</label>
           <select id="region-select"><option value="">All regions</option></select>
         </div>
-        <div class="filter-field">
-          <label class="filter-label" for="start-year">Start Year</label>
+        <div class="filter-field filter-field--inline">
+          <label class="filter-label" for="start-year">Start</label>
           <input id="start-year" type="number" min="2014" max="2026" placeholder="2014" />
         </div>
-        <div class="filter-field">
-          <label class="filter-label" for="end-year">End Year</label>
+        <div class="filter-field filter-field--inline">
+          <label class="filter-label" for="end-year">End</label>
           <input id="end-year" type="number" min="2014" max="2026" placeholder="2026" />
         </div>
-      </div>
-
-      <!-- Applied filters chips + actions -->
-      <div class="filter-row filter-row--chips">
         <div id="applied" class="applied"></div>
         <div class="filter-actions">
           <button id="clearAll" class="btn-clear">Clear All</button>

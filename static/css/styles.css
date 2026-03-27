@@ -70,9 +70,9 @@ html, body {
 .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 
 .filter-row--search #search {
-  width: 100%; padding: .55rem .9rem;
+  width: 100%; padding: .4rem .9rem;
   border: 1px solid #ddd; border-radius: .5rem; background: white;
-  font-size: .95rem; outline: none; transition: border-color 200ms;
+  font-size: .9rem; outline: none; transition: border-color 200ms;
 }
 .filter-row--search #search:focus { border-color: var(--primary-color); }
 
@@ -94,19 +94,18 @@ html, body {
 .pill.active { color: #fff !important; }
 
 /* Selects and number inputs */
-.filter-row--selects { gap: .75rem; }
+.filter-row--selects { gap: .75rem; align-items: flex-start; }
 .filter-field { display: flex; flex-direction: column; gap: .2rem; }
+.filter-field--inline { flex-direction: row; align-items: center; gap: .4rem; }
 .filter-field select, .filter-field input[type="number"] {
-  padding: .45rem .6rem; background: white;
+  padding: .35rem .6rem; background: white;
   border: 1px solid #ddd; border-radius: .4rem;
   font-size: .85rem; min-width: 130px; outline: none;
 }
+.filter-field--inline input[type="number"] { min-width: 70px; width: 70px; }
 .filter-field select:focus, .filter-field input[type="number"]:focus {
   border-color: var(--primary-color);
 }
-
-/* Applied chips */
-.filter-row--chips { justify-content: space-between; min-height: 0; }
 .applied { display: flex; gap: .4rem; flex-wrap: wrap; }
 .chip {
   background: #fff; border: 1px solid var(--primary-color);
@@ -119,7 +118,7 @@ html, body {
   border-radius: .4rem; cursor: pointer; color: var(--text-muted); font-size: 12px;
 }
 .btn-clear:hover { border-color: var(--primary-color); color: var(--primary-color); }
-.filter-actions { display: flex; gap: .4rem; align-items: center; flex-shrink: 0; }
+.filter-actions { display: flex; gap: .4rem; align-items: center; flex-shrink: 0; margin-left: auto; }
 .btn-export {
   padding: .3rem .7rem; border: 1px solid #ddd; background: white;
   border-radius: .4rem; cursor: pointer; color: var(--text-muted); font-size: 12px;

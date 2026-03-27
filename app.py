@@ -187,6 +187,7 @@ def _transform(inc: dict) -> dict:
         "campaign_name": inc.get("campaign_name"),
         "attribution_basis": inc.get("attribution_basis"),
         "review_status": inc.get("review_status"),
+        "source": inc.get("source"),
     }
 
 
@@ -420,6 +421,7 @@ def _build_export_df(filters):
         "attribution_basis": inc["attribution_basis"],
         "campaign_name": inc["campaign_name"],
         "confidence_score": inc["confidence_score"],
+        "source": inc.get("source"),
     } for inc in filtered])
 
 
