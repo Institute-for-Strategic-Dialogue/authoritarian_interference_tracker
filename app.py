@@ -53,6 +53,13 @@ COUNTRY_NAMES = {
     "PT": "Portugal", "RO": "Romania", "RS": "Serbia", "SE": "Sweden",
     "SI": "Slovenia", "SK": "Slovakia", "TR": "Turkey", "UA": "Ukraine",
     "US": "United States", "XK": "Kosovo",
+    "AE": "United Arab Emirates", "AF": "Afghanistan", "AM": "Armenia",
+    "AZ": "Azerbaijan", "BR": "Brazil", "CN": "China", "EG": "Egypt",
+    "ID": "Indonesia", "IQ": "Iraq", "IR": "Iran", "JP": "Japan",
+    "KP": "North Korea", "KR": "South Korea", "KZ": "Kazakhstan",
+    "MX": "Mexico", "PK": "Pakistan", "RU": "Russia", "SA": "Saudi Arabia",
+    "SG": "Singapore", "SY": "Syria", "TW": "Taiwan", "UZ": "Uzbekistan",
+    "VN": "Vietnam", "ZA": "South Africa",
 }
 
 COUNTRY_CENTROIDS = {
