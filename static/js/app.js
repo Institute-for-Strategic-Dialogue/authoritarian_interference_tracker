@@ -1241,6 +1241,7 @@ function renderEntityFiltered() {
   const allNodes = entityRawData.nodes || [];
   const minInc = parseInt((document.getElementById('ent-min-slider') || {}).value) || 3;
   const roleFilter = (document.getElementById('ent-role-filter') || {}).value || 'all';
+  const typeFilter = (document.getElementById('ent-type-filter') || {}).value || 'all';
   const showSources = (document.getElementById('ent-show-sources') || {}).checked || false;
 
   // Graph: apply filters
@@ -1248,15 +1249,17 @@ function renderEntityFiltered() {
     if (n.incident_count < minInc) return false;
     if (!showSources && n.role === 'source') return false;
     if (roleFilter !== 'all' && n.role !== roleFilter) return false;
+    if (typeFilter !== 'all' && n.entity_type !== typeFilter) return false;
     return true;
   });
   const nodeIds = new Set(graphNodes.map(n => n.id));
   let graphEdges = (entityRawData.edges || []).filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
   renderEntityGraph({ nodes: graphNodes, edges: graphEdges });
 
-  // Table: show all (respect role filter only)
+  // Table: respect role + type filters
   let tableNodes = allNodes;
-  if (roleFilter !== 'all') tableNodes = allNodes.filter(n => n.role === roleFilter);
+  if (roleFilter !== 'all') tableNodes = tableNodes.filter(n => n.role === roleFilter);
+  if (typeFilter !== 'all') tableNodes = tableNodes.filter(n => n.entity_type === typeFilter);
   renderEntityTable(tableNodes);
 }
 
@@ -1365,10 +1368,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const slider = document.getElementById("ent-min-slider");
   const valLabel = document.getElementById("ent-min-val");
   const roleSelect = document.getElementById("ent-role-filter");
+  const typeSelect = document.getElementById("ent-type-filter");
   const srcCheck = document.getElementById("ent-show-sources");
 
   if (slider) slider.addEventListener("input", () => { valLabel.textContent = slider.value; renderEntityFiltered(); });
   if (roleSelect) roleSelect.addEventListener("change", () => renderEntityFiltered());
+  if (typeSelect) typeSelect.addEventListener("change", () => renderEntityFiltered());
   if (srcCheck) srcCheck.addEventListener("change", () => renderEntityFiltered());
 });
 
