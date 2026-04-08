@@ -1225,7 +1225,6 @@ const ENT_ROLE_STROKES = {
 
 let entitySimulation = null;
 let entityRawData = { nodes: [], edges: [] };
-const entityHiddenRoles = new Set(["source"]);  // hidden by default
 
 async function refreshEntityNetwork() {
   const params = currentParams();
@@ -1240,13 +1239,25 @@ async function refreshEntityNetwork() {
 
 function renderEntityFiltered() {
   const allNodes = entityRawData.nodes || [];
-  // Graph: filter out hidden roles + require min 2 incidents
-  let graphNodes = allNodes.filter(n => !entityHiddenRoles.has(n.role) && n.incident_count >= 2);
+  const minInc = parseInt((document.getElementById('ent-min-slider') || {}).value) || 3;
+  const roleFilter = (document.getElementById('ent-role-filter') || {}).value || 'all';
+  const showSources = (document.getElementById('ent-show-sources') || {}).checked || false;
+
+  // Graph: apply filters
+  let graphNodes = allNodes.filter(n => {
+    if (n.incident_count < minInc) return false;
+    if (!showSources && n.role === 'source') return false;
+    if (roleFilter !== 'all' && n.role !== roleFilter) return false;
+    return true;
+  });
   const nodeIds = new Set(graphNodes.map(n => n.id));
   let graphEdges = (entityRawData.edges || []).filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
   renderEntityGraph({ nodes: graphNodes, edges: graphEdges });
-  // Table: show everything
-  renderEntityTable(allNodes);
+
+  // Table: show all (respect role filter only)
+  let tableNodes = allNodes;
+  if (roleFilter !== 'all') tableNodes = allNodes.filter(n => n.role === roleFilter);
+  renderEntityTable(tableNodes);
 }
 
 function renderEntityGraph(data) {
@@ -1349,21 +1360,16 @@ function renderEntityTable(nodes) {
   ).join('');
 }
 
-// ---- Entity source toggle ----
+// ---- Entity controls ----
 document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("toggle-sources");
-  if (btn) {
-    btn.addEventListener("click", () => {
-      if (entityHiddenRoles.has("source")) {
-        entityHiddenRoles.delete("source");
-        btn.textContent = "\u25C9 Sources: on";
-      } else {
-        entityHiddenRoles.add("source");
-        btn.textContent = "\u25C9 Sources: off";
-      }
-      renderEntityFiltered();
-    });
-  }
+  const slider = document.getElementById("ent-min-slider");
+  const valLabel = document.getElementById("ent-min-val");
+  const roleSelect = document.getElementById("ent-role-filter");
+  const srcCheck = document.getElementById("ent-show-sources");
+
+  if (slider) slider.addEventListener("input", () => { valLabel.textContent = slider.value; renderEntityFiltered(); });
+  if (roleSelect) roleSelect.addEventListener("change", () => renderEntityFiltered());
+  if (srcCheck) srcCheck.addEventListener("change", () => renderEntityFiltered());
 });
 
 // ---- Boot ----

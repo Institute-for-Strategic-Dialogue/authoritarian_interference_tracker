@@ -148,6 +148,20 @@ html, body {
 @media (max-width: 900px) { .viz-grid { grid-template-columns: 1fr; } }
 .viz-volume #volume-chart { padding: .75rem; min-height: 300px; }
 
+/* ---- Entity controls ---- */
+.ent-controls {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text-muted); font-weight: 400;
+}
+.ent-controls label { font-weight: 500; }
+.ent-controls select {
+  padding: 2px 6px; border: 1px solid var(--border-color); border-radius: 4px;
+  font-size: 11px; background: #fff; color: var(--text-strong);
+}
+.ent-controls input[type="range"] { accent-color: var(--primary-color); }
+.ent-controls input[type="checkbox"] { accent-color: var(--primary-color); vertical-align: middle; }
+#ent-min-val { min-width: 14px; text-align: center; font-weight: 600; font-size: 12px; }
+
 /* ---- Entity network + table ---- */
 .entity-layout {
   display: grid;
