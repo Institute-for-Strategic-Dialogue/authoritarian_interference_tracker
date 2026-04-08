@@ -195,6 +195,8 @@ def _transform(inc: dict) -> dict:
         "attribution_basis": inc.get("attribution_basis"),
         "review_status": inc.get("review_status"),
         "source": inc.get("source"),
+        "ttps": inc.get("ttps") or [],
+        "entities": inc.get("entities") or [],
     }
 
 
@@ -400,6 +402,24 @@ def sitemap():
         xml.append(f'  <url><loc>{request.host_url}incident/{slug}</loc></url>')
     xml.append('</urlset>')
     return Response("\n".join(xml), mimetype="application/xml")
+
+
+@app.route("/network")
+def network():
+    """Entity network graph page."""
+    return render_template("network.html", is_admin=session.get("admin", False))
+
+
+@app.route("/api/entities/network")
+def api_entity_network():
+    """Proxy to incident-manager entity network endpoint."""
+    try:
+        resp = _http_client.get(f"{IM_URL}/entities/network", params={"status": "approved"})
+        resp.raise_for_status()
+        return jsonify(resp.json())
+    except Exception as e:
+        app.logger.error(f"Entity network fetch failed: {e}")
+        return jsonify({"nodes": [], "edges": []})
 
 
 @app.route("/ait_admin")

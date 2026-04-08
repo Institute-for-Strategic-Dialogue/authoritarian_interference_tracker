@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Entity Network — Authoritarian Interference Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
+  <link rel="stylesheet" href="/static/css/styles.css"/>
+  <style>
+    .network-container {
+      background: var(--bg-card, #1a1a2e);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    #network-graph {
+      width: 100%;
+      height: 600px;
+    }
+    #network-graph svg { width: 100%; height: 100%; }
+
+    .node-label {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 11px;
+      fill: #ccc;
+      pointer-events: none;
+    }
+    .node-label.highlighted { fill: #fff; font-weight: 600; }
+
+    .legend { display: flex; gap: 20px; padding: 12px 16px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #aaa; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+    .entity-table-wrap {
+      max-height: 500px;
+      overflow-y: auto;
+      background: var(--bg-card, #1a1a2e);
+      border-radius: 8px;
+    }
+    .entity-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .entity-table th {
+      position: sticky; top: 0;
+      background: #16213e;
+      padding: 8px 12px;
+      text-align: left;
+      color: #aaa;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .entity-table th:hover { color: #fff; }
+    .entity-table td { padding: 6px 12px; border-top: 1px solid rgba(255,255,255,0.05); color: #ccc; }
+    .entity-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+    .role-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .role-perpetrator { background: rgba(199,7,77,0.3); color: #e74c6f; }
+    .role-target { background: rgba(91,159,204,0.3); color: #7bbcdf; }
+    .role-attributed_group { background: rgba(212,88,122,0.3); color: #e88da5; }
+
+    .type-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      background: rgba(255,255,255,0.08);
+      color: #999;
+    }
+
+    .controls { display: flex; gap: 12px; padding: 12px 16px; align-items: center; flex-wrap: wrap; }
+    .controls label { color: #aaa; font-size: 13px; }
+    .controls select, .controls input {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #ccc;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .back-link {
+      color: var(--accent-blue, #5B9FCC);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    .section-title {
+      color: #eee;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 24px 0 12px;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header container">
+    <div class="brand">
+      <div class="brand-row">
+        <h1>AUTHORITARIAN INTERFERENCE TRACKER</h1>
+        <div class="logo-area">
+          <img src="/static/img/isd-logo.png" alt="ISD" class="isd-logo-img">
+        </div>
+      </div>
+      <div class="meta-bar">
+        <a href="/" class="back-link">&larr; Back to Dashboard</a>
+        <span style="margin-left: 16px;">ENTITY NETWORK</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 16px 24px 60px;">
+    <div class="network-container">
+      <div class="controls">
+        <label>Filter role:</label>
+        <select id="role-filter">
+          <option value="all">All</option>
+          <option value="perpetrator">Perpetrators</option>
+          <option value="target">Targets</option>
+          <option value="attributed_group">Attributed Groups</option>
+        </select>
+        <label>Min incidents:</label>
+        <input id="min-incidents" type="number" value="1" min="1" max="50" style="width:60px;"/>
+        <label>Search:</label>
+        <input id="entity-search" type="text" placeholder="Search entities..." style="width:180px;"/>
+      </div>
+      <div class="legend" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <span style="color:#666; font-size:11px; font-weight:600; width:50px;">FILL</span>
+        <div class="legend-item"><div class="legend-dot" style="background:#C7074D;"></div>Military / Intel</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#0068B2;"></div>Government</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3A8A6E;"></div>Organization</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#D4A843;"></div>Person</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#5B9FCC;"></div>Infrastructure</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#D4587A;"></div>Media</div>
+      </div>
+      <div class="legend">
+        <span style="color:#666; font-size:11px; font-weight:600; width:50px;">BORDER</span>
+        <div class="legend-item"><div class="legend-dot" style="background:transparent; border:3px solid #ff4444;"></div>Perpetrator</div>
+        <div class="legend-item"><div class="legend-dot" style="background:transparent; border:3px solid #44aaff;"></div>Target</div>
+        <div class="legend-item"><div class="legend-dot" style="background:transparent; border:3px solid #ff88aa;"></div>Attributed Group</div>
+        <div class="legend-item" style="margin-left:auto; color:#666; font-size:12px;">Node size = incident count</div>
+      </div>
+      <div id="network-graph"></div>
+    </div>
+
+    <h2 class="section-title">Entity Table</h2>
+    <div class="entity-table-wrap">
+      <table class="entity-table" id="entity-table">
+        <thead>
+          <tr>
+            <th data-sort="name">Name</th>
+            <th data-sort="entity_type">Type</th>
+            <th data-sort="role">Role</th>
+            <th data-sort="incident_count">Incidents</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+  (function() {
+    const TYPE_COLORS = {
+      military: '#C7074D',
+      government: '#0068B2',
+      organization: '#3A8A6E',
+      person: '#D4A843',
+      infrastructure: '#5B9FCC',
+      media: '#D4587A',
+    };
+    const ROLE_STROKES = {
+      perpetrator: '#ff4444',
+      target: '#44aaff',
+      attributed_group: '#ff88aa',
+    };
+
+    let allData = { nodes: [], edges: [] };
+    let simulation;
+
+    async function load() {
+      const resp = await fetch('/api/entities/network');
+      allData = await resp.json();
+      render();
+      renderTable();
+    }
+
+    function getFiltered() {
+      const roleFilter = document.getElementById('role-filter').value;
+      const minInc = parseInt(document.getElementById('min-incidents').value) || 1;
+      const search = document.getElementById('entity-search').value.toLowerCase();
+
+      let nodes = allData.nodes.filter(n => {
+        if (roleFilter !== 'all' && n.role !== roleFilter) return false;
+        if (n.incident_count < minInc) return false;
+        if (search && !n.name.toLowerCase().includes(search) && !n.id.includes(search)) return false;
+        return true;
+      });
+
+      const nodeIds = new Set(nodes.map(n => n.id));
+      let edges = allData.edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+
+      return { nodes, edges };
+    }
+
+    function render() {
+      const container = document.getElementById('network-graph');
+      container.innerHTML = '';
+      const width = container.clientWidth;
+      const height = container.clientHeight || 600;
+
+      const { nodes, edges } = getFiltered();
+      if (!nodes.length) {
+        container.innerHTML = '<div style="padding:40px;text-align:center;color:#666;">No entities to display. Adjust filters or run entity extraction.</div>';
+        return;
+      }
+
+      const svg = d3.select(container).append('svg')
+        .attr('viewBox', [0, 0, width, height]);
+
+      // Scale node radius by incident count
+      const maxCount = d3.max(nodes, d => d.incident_count) || 1;
+      const rScale = d3.scaleSqrt().domain([1, maxCount]).range([4, 28]);
+
+      // Clone data for D3 simulation
+      const simNodes = nodes.map(d => ({...d}));
+      const simEdges = edges.map(d => ({source: d.source, target: d.target, weight: d.weight}));
+
+      simulation = d3.forceSimulation(simNodes)
+        .force('link', d3.forceLink(simEdges).id(d => d.id).distance(80).strength(d => Math.min(d.weight * 0.3, 1)))
+        .force('charge', d3.forceManyBody().strength(-120))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => rScale(d.incident_count) + 4));
+
+      const link = svg.append('g')
+        .selectAll('line')
+        .data(simEdges)
+        .join('line')
+        .attr('stroke', 'rgba(255,255,255,0.08)')
+        .attr('stroke-width', d => Math.min(d.weight * 0.8, 4));
+
+      const nodeG = svg.append('g')
+        .selectAll('g')
+        .data(simNodes)
+        .join('g')
+        .call(d3.drag()
+          .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+          .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+          .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+        );
+
+      nodeG.append('circle')
+        .attr('r', d => rScale(d.incident_count))
+        .attr('fill', d => TYPE_COLORS[d.entity_type] || '#888')
+        .attr('fill-opacity', 0.8)
+        .attr('stroke', d => ROLE_STROKES[d.role] || '#fff')
+        .attr('stroke-width', d => Math.max(2, rScale(d.incident_count) * 0.25))
+        .attr('stroke-opacity', 0.8);
+
+      nodeG.append('text')
+        .attr('class', 'node-label')
+        .attr('dy', d => rScale(d.incident_count) + 12)
+        .attr('text-anchor', 'middle')
+        .text(d => d.incident_count >= 2 ? d.name : '');
+
+      // Hover: show label + highlight connections
+      nodeG.on('mouseenter', function(e, d) {
+        d3.select(this).select('text').text(d.name).classed('highlighted', true);
+        d3.select(this).select('circle').attr('stroke', '#fff').attr('stroke-width', 2.5).attr('stroke-opacity', 1);
+        const connected = new Set();
+        simEdges.forEach(l => {
+          const sid = typeof l.source === 'object' ? l.source.id : l.source;
+          const tid = typeof l.target === 'object' ? l.target.id : l.target;
+          if (sid === d.id) connected.add(tid);
+          if (tid === d.id) connected.add(sid);
+        });
+        link.attr('stroke', l => {
+          const sid = typeof l.source === 'object' ? l.source.id : l.source;
+          const tid = typeof l.target === 'object' ? l.target.id : l.target;
+          return (sid === d.id || tid === d.id) ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.04)';
+        });
+        nodeG.select('circle').attr('fill-opacity', n => (n.id === d.id || connected.has(n.id)) ? 0.9 : 0.2);
+      }).on('mouseleave', function() {
+        nodeG.select('text').each(function(d) {
+          d3.select(this).text(d.incident_count >= 2 ? d.name : '').classed('highlighted', false);
+        });
+        nodeG.select('circle')
+          .attr('stroke', d => ROLE_STROKES[d.role] || '#fff')
+          .attr('stroke-width', d => Math.max(2, rScale(d.incident_count) * 0.25))
+          .attr('stroke-opacity', 0.8).attr('fill-opacity', 0.8);
+        link.attr('stroke', 'rgba(255,255,255,0.08)');
+      });
+
+      // Tooltip
+      nodeG.append('title').text(d => `${d.name}\n${d.entity_type} (${d.role})\n${d.incident_count} incident(s)`);
+
+      simulation.on('tick', () => {
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        nodeG.attr('transform', d => `translate(${d.x},${d.y})`);
+      });
+    }
+
+    function renderTable() {
+      const { nodes } = getFiltered();
+      const tbody = document.querySelector('#entity-table tbody');
+      tbody.innerHTML = nodes
+        .sort((a, b) => b.incident_count - a.incident_count)
+        .map(n => `<tr>
+          <td><strong>${n.name}</strong></td>
+          <td><span class="type-tag">${n.entity_type}</span></td>
+          <td><span class="role-tag role-${n.role}">${n.role.replace('_', ' ')}</span></td>
+          <td>${n.incident_count}</td>
+        </tr>`).join('');
+    }
+
+    // Column sorting
+    let sortCol = 'incident_count', sortAsc = false;
+    document.querySelectorAll('#entity-table th').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (sortCol === col) sortAsc = !sortAsc;
+        else { sortCol = col; sortAsc = col === 'name'; }
+        renderTable();
+      });
+    });
+
+    // Filter controls
+    ['role-filter', 'min-incidents', 'entity-search'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => { render(); renderTable(); });
+    });
+
+    load();
+  })();
+  </script>
+</body>
+</html>
