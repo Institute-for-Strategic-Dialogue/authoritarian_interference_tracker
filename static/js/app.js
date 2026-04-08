@@ -1225,6 +1225,7 @@ const ENT_ROLE_STROKES = {
 
 let entitySimulation = null;
 let entityRawData = { nodes: [], edges: [] };
+const selectedEntities = new Set();  // clicked entity names for incident filtering
 
 async function refreshEntityNetwork() {
   const params = currentParams();
@@ -1285,15 +1286,16 @@ function renderEntityGraph(data) {
 
   if (entitySimulation) entitySimulation.stop();
   entitySimulation = d3.forceSimulation(simNodes)
-    .force('link', d3.forceLink(simEdges).id(d => d.id).distance(70).strength(d => Math.min(d.weight * 0.3, 1)))
-    .force('charge', d3.forceManyBody().strength(-80))
+    .force('link', d3.forceLink(simEdges).id(d => d.id).distance(120).strength(d => Math.min(d.weight * 0.15, 0.5)))
+    .force('charge', d3.forceManyBody().strength(-200))
     .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius(d => rScale(d.incident_count) + 3));
+    .force('collision', d3.forceCollide().radius(d => rScale(d.incident_count) + 12));
 
   const link = svg.append('g').selectAll('line').data(simEdges).join('line')
     .attr('stroke', 'rgba(0,0,0,.06)').attr('stroke-width', d => Math.min(d.weight * 0.7, 3));
 
   const nodeG = svg.append('g').selectAll('g').data(simNodes).join('g')
+    .style('cursor', 'pointer')
     .call(d3.drag()
       .on('start', (e, d) => { if (!e.active) entitySimulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
       .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
@@ -1303,15 +1305,49 @@ function renderEntityGraph(data) {
   nodeG.append('circle')
     .attr('r', d => rScale(d.incident_count))
     .attr('fill', d => ENT_TYPE_COLORS[d.entity_type] || '#888')
-    .attr('fill-opacity', 0.8)
-    .attr('stroke', d => ENT_ROLE_STROKES[d.role] || '#ccc')
-    .attr('stroke-width', d => Math.max(1.5, rScale(d.incident_count) * 0.2))
+    .attr('fill-opacity', d => selectedEntities.has(d.name) ? 1.0 : 0.8)
+    .attr('stroke', d => selectedEntities.has(d.name) ? '#333' : (ENT_ROLE_STROKES[d.role] || '#ccc'))
+    .attr('stroke-width', d => selectedEntities.has(d.name) ? 3 : Math.max(1.5, rScale(d.incident_count) * 0.2))
     .attr('stroke-opacity', 0.7);
 
   nodeG.append('text').attr('class', 'node-label')
     .attr('dy', d => rScale(d.incident_count) + 11)
     .attr('text-anchor', 'middle')
+    .style('font-weight', d => selectedEntities.has(d.name) ? '700' : null)
     .text(d => d.incident_count >= 2 ? d.name : '');
+
+  // Click: filter incidents by entity name (ctrl+click for multi-select)
+  nodeG.on('click', function(e, d) {
+    e.stopPropagation();
+    if (e.ctrlKey || e.metaKey) {
+      if (selectedEntities.has(d.name)) selectedEntities.delete(d.name);
+      else selectedEntities.add(d.name);
+    } else {
+      if (selectedEntities.size === 1 && selectedEntities.has(d.name)) {
+        selectedEntities.clear();
+      } else {
+        selectedEntities.clear();
+        selectedEntities.add(d.name);
+      }
+    }
+    // Set search to selected entity names
+    const q = Array.from(selectedEntities).join(' ');
+    state.filters.q = q;
+    $("#search").value = q;
+    state.page = 1;
+    refresh();
+  });
+
+  // Click on SVG background to clear selection
+  svg.on('click', function() {
+    if (selectedEntities.size) {
+      selectedEntities.clear();
+      state.filters.q = '';
+      $("#search").value = '';
+      state.page = 1;
+      refresh();
+    }
+  });
 
   nodeG.on('mouseenter', function(e, d) {
     d3.select(this).select('text').text(d.name).style('fill', 'var(--text-strong)').style('font-weight', '600');
@@ -1331,16 +1367,17 @@ function renderEntityGraph(data) {
     nodeG.select('circle').attr('fill-opacity', n => (n.id === d.id || connected.has(n.id)) ? 0.9 : 0.15);
   }).on('mouseleave', function() {
     nodeG.select('text').each(function(d) {
-      d3.select(this).text(d.incident_count >= 2 ? d.name : '').style('fill', null).style('font-weight', null);
+      d3.select(this).text(d.incident_count >= 2 ? d.name : '').style('fill', null)
+        .style('font-weight', selectedEntities.has(d.name) ? '700' : null);
     });
     nodeG.select('circle')
-      .attr('stroke', d => ENT_ROLE_STROKES[d.role] || '#ccc')
-      .attr('stroke-width', d => Math.max(1.5, rScale(d.incident_count) * 0.2))
-      .attr('fill-opacity', 0.8);
+      .attr('stroke', d => selectedEntities.has(d.name) ? '#333' : (ENT_ROLE_STROKES[d.role] || '#ccc'))
+      .attr('stroke-width', d => selectedEntities.has(d.name) ? 3 : Math.max(1.5, rScale(d.incident_count) * 0.2))
+      .attr('fill-opacity', d => selectedEntities.has(d.name) ? 1.0 : 0.8);
     link.attr('stroke', 'rgba(0,0,0,.06)');
   });
 
-  nodeG.append('title').text(d => `${d.name}\n${d.entity_type} (${d.role})\n${d.incident_count} incident(s)`);
+  nodeG.append('title').text(d => `${d.name}\n${d.entity_type} (${d.role})\n${d.incident_count} incident(s)\nClick to filter incidents`);
 
   entitySimulation.on('tick', () => {
     link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)

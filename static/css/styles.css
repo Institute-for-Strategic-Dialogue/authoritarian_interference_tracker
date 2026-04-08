@@ -167,12 +167,12 @@ html, body {
   display: grid;
   grid-template-columns: 4fr 1fr;
   gap: 0;
-  min-height: 420px;
+  min-height: 540px;
 }
-#entity-graph { min-height: 420px; }
+#entity-graph { min-height: 540px; }
 #entity-table-wrap {
   overflow-y: auto;
-  max-height: 420px;
+  max-height: 540px;
   border-left: 1px solid var(--border-color);
 }
 @media (max-width: 900px) {
