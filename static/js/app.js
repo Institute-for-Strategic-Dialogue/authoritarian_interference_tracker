@@ -1224,17 +1224,29 @@ const ENT_ROLE_STROKES = {
 };
 
 let entitySimulation = null;
+let entityRawData = { nodes: [], edges: [] };
+const entityHiddenRoles = new Set(["source"]);  // hidden by default
 
 async function refreshEntityNetwork() {
   const params = currentParams();
   try {
     const res = await fetch(`/api/entities/network?${params}`);
-    const data = await res.json();
-    renderEntityGraph(data);
-    renderEntityTable(data.nodes || []);
+    entityRawData = await res.json();
+    renderEntityFiltered();
   } catch(e) {
     console.error("EntityNetwork:", e);
   }
+}
+
+function renderEntityFiltered() {
+  const allNodes = entityRawData.nodes || [];
+  // Graph: filter out hidden roles + require min 2 incidents
+  let graphNodes = allNodes.filter(n => !entityHiddenRoles.has(n.role) && n.incident_count >= 2);
+  const nodeIds = new Set(graphNodes.map(n => n.id));
+  let graphEdges = (entityRawData.edges || []).filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+  renderEntityGraph({ nodes: graphNodes, edges: graphEdges });
+  // Table: show everything
+  renderEntityTable(allNodes);
 }
 
 function renderEntityGraph(data) {
@@ -1336,6 +1348,23 @@ function renderEntityTable(nodes) {
     </tr>`
   ).join('');
 }
+
+// ---- Entity source toggle ----
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("toggle-sources");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      if (entityHiddenRoles.has("source")) {
+        entityHiddenRoles.delete("source");
+        btn.textContent = "\u25C9 Sources: on";
+      } else {
+        entityHiddenRoles.add("source");
+        btn.textContent = "\u25C9 Sources: off";
+      }
+      renderEntityFiltered();
+    });
+  }
+});
 
 // ---- Boot ----
 document.addEventListener("DOMContentLoaded", init);
