@@ -128,6 +128,8 @@
           <option value="perpetrator">Perpetrators</option>
           <option value="target">Targets</option>
           <option value="attributed_group">Attributed Groups</option>
+          <option value="source">Sources</option>
+          <option value="tool">Tools</option>
         </select>
         <label>Min incidents:</label>
         <input id="min-incidents" type="number" value="1" min="1" max="50" style="width:60px;"/>
@@ -136,18 +138,21 @@
       </div>
       <div class="legend" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
         <span style="color:#666; font-size:11px; font-weight:600; width:50px;">FILL</span>
-        <div class="legend-item"><div class="legend-dot" style="background:#C7074D;"></div>Military / Intel</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#C7074D;"></div>Military</div>
         <div class="legend-item"><div class="legend-dot" style="background:#0068B2;"></div>Government</div>
         <div class="legend-item"><div class="legend-dot" style="background:#3A8A6E;"></div>Organization</div>
         <div class="legend-item"><div class="legend-dot" style="background:#D4A843;"></div>Person</div>
         <div class="legend-item"><div class="legend-dot" style="background:#5B9FCC;"></div>Infrastructure</div>
         <div class="legend-item"><div class="legend-dot" style="background:#D4587A;"></div>Media</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#9B59B6;"></div>Malware</div>
       </div>
       <div class="legend">
         <span style="color:#666; font-size:11px; font-weight:600; width:50px;">BORDER</span>
         <div class="legend-item"><div class="legend-dot" style="background:transparent; border:3px solid #ff4444;"></div>Perpetrator</div>
         <div class="legend-item"><div class="legend-dot" style="background:transparent; border:3px solid #44aaff;"></div>Target</div>
         <div class="legend-item"><div class="legend-dot" style="background:transparent; border:3px solid #ff88aa;"></div>Attributed Group</div>
+        <div class="legend-item"><div class="legend-dot" style="background:transparent; border:3px solid #aaaaaa;"></div>Source</div>
+        <div class="legend-item"><div class="legend-dot" style="background:transparent; border:3px solid #9B59B6;"></div>Tool</div>
         <div class="legend-item" style="margin-left:auto; color:#666; font-size:12px;">Node size = incident count</div>
       </div>
       <div id="network-graph"></div>
@@ -178,11 +183,14 @@
       person: '#D4A843',
       infrastructure: '#5B9FCC',
       media: '#D4587A',
+      malware: '#9B59B6',
     };
     const ROLE_STROKES = {
       perpetrator: '#ff4444',
       target: '#44aaff',
       attributed_group: '#ff88aa',
+      source: '#aaaaaa',
+      tool: '#9B59B6',
     };
 
     let allData = { nodes: [], edges: [] };
