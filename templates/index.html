@@ -112,7 +112,24 @@
       <div id="sankey-chart"></div>
     </section>
 
-    <!-- 6. Incident list -->
+    <!-- 6. Entity network + table (side by side) -->
+    <div class="viz-grid" id="entity-section">
+      <section class="card">
+        <div class="card-title">ENTITY NETWORK <span class="sub">co-occurrence by incident</span></div>
+        <div id="entity-graph" style="height:400px;"></div>
+      </section>
+      <section class="card">
+        <div class="card-title">ENTITIES <span class="sub">sorted by frequency</span></div>
+        <div id="entity-table-wrap" style="height:400px; overflow-y:auto;">
+          <table class="entity-tbl" id="entity-tbl">
+            <thead><tr><th>Name</th><th>Type</th><th>Role</th><th>#</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- 7. Incident list -->
     <section class="card list-section">
       <div class="card-title">
         INCIDENTS <span class="sub">reverse chronological</span>

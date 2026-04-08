@@ -148,6 +148,21 @@ html, body {
 @media (max-width: 900px) { .viz-grid { grid-template-columns: 1fr; } }
 .viz-volume #volume-chart { padding: .75rem; min-height: 300px; }
 
+/* ---- Entity table ---- */
+.entity-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.entity-tbl th { position: sticky; top: 0; background: #f0f2f5; padding: 6px 10px; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; }
+.entity-tbl th:hover { color: var(--text-strong); }
+.entity-tbl td { padding: 4px 10px; border-top: 1px solid var(--border-color); }
+.entity-tbl tr:hover td { background: rgba(0,0,0,.02); }
+.entity-tbl .ent-role { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+.entity-tbl .ent-role--perpetrator { background: rgba(199,7,77,.12); color: #c7074d; }
+.entity-tbl .ent-role--target { background: rgba(0,104,178,.12); color: #0068b2; }
+.entity-tbl .ent-role--attributed_group { background: rgba(212,88,122,.12); color: #d4587a; }
+.entity-tbl .ent-role--source { background: rgba(92,103,113,.12); color: #5c6771; }
+.entity-tbl .ent-role--tool { background: rgba(155,89,182,.12); color: #9b59b6; }
+.entity-tbl .ent-type { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; background: rgba(0,0,0,.05); color: var(--text-muted); }
+#entity-graph svg .node-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; fill: var(--text-muted); pointer-events: none; }
+
 /* ---- Sankey (full width) ---- */
 .viz-sankey { margin-top: 1rem; }
 .viz-sankey #sankey-chart { padding: .75rem; min-height: 540px; overflow: hidden; }

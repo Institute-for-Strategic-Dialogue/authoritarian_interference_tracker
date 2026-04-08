@@ -313,6 +313,7 @@ async function refresh() {
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
   try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
   try { renderList(data.incidents || []); } catch(e) { console.error("List:", e); }
+  try { refreshEntityNetwork(); } catch(e) { console.error("EntityNetwork:", e); }
 
   // Update URL with current filter state (without triggering navigation)
   if (!window.prefillIncident) {
@@ -1208,6 +1209,133 @@ window.addEventListener("popstate", () => {
     document.body.style.overflow = "";
   }
 });
+
+// ========================================================================
+// ENTITY NETWORK GRAPH + TABLE
+// ========================================================================
+
+const ENT_TYPE_COLORS = {
+  military: '#C7074D', government: '#0068B2', organization: '#3A8A6E',
+  person: '#D4A843', infrastructure: '#5B9FCC', media: '#D4587A', malware: '#9B59B6',
+};
+const ENT_ROLE_STROKES = {
+  perpetrator: '#C7074D', target: '#0068B2', attributed_group: '#D4587A',
+  source: '#999', tool: '#9B59B6',
+};
+
+let entitySimulation = null;
+
+async function refreshEntityNetwork() {
+  const params = currentParams();
+  try {
+    const res = await fetch(`/api/entities/network?${params}`);
+    const data = await res.json();
+    renderEntityGraph(data);
+    renderEntityTable(data.nodes || []);
+  } catch(e) {
+    console.error("EntityNetwork:", e);
+  }
+}
+
+function renderEntityGraph(data) {
+  const container = document.getElementById('entity-graph');
+  if (!container) return;
+  container.innerHTML = '';
+  const { nodes, edges } = data;
+  if (!nodes || !nodes.length) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:#999;font-size:13px;">No entities yet. Run entity extraction to populate.</div>';
+    return;
+  }
+
+  const width = container.clientWidth || 500;
+  const height = container.clientHeight || 400;
+  const svg = d3.select(container).append('svg').attr('viewBox', [0, 0, width, height]);
+
+  const maxCount = d3.max(nodes, d => d.incident_count) || 1;
+  const rScale = d3.scaleSqrt().domain([1, maxCount]).range([4, 24]);
+
+  const simNodes = nodes.map(d => ({...d}));
+  const simEdges = (edges || []).map(d => ({source: d.source, target: d.target, weight: d.weight}));
+
+  if (entitySimulation) entitySimulation.stop();
+  entitySimulation = d3.forceSimulation(simNodes)
+    .force('link', d3.forceLink(simEdges).id(d => d.id).distance(70).strength(d => Math.min(d.weight * 0.3, 1)))
+    .force('charge', d3.forceManyBody().strength(-80))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(d => rScale(d.incident_count) + 3));
+
+  const link = svg.append('g').selectAll('line').data(simEdges).join('line')
+    .attr('stroke', 'rgba(0,0,0,.06)').attr('stroke-width', d => Math.min(d.weight * 0.7, 3));
+
+  const nodeG = svg.append('g').selectAll('g').data(simNodes).join('g')
+    .call(d3.drag()
+      .on('start', (e, d) => { if (!e.active) entitySimulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on('end', (e, d) => { if (!e.active) entitySimulation.alphaTarget(0); d.fx = null; d.fy = null; })
+    );
+
+  nodeG.append('circle')
+    .attr('r', d => rScale(d.incident_count))
+    .attr('fill', d => ENT_TYPE_COLORS[d.entity_type] || '#888')
+    .attr('fill-opacity', 0.8)
+    .attr('stroke', d => ENT_ROLE_STROKES[d.role] || '#ccc')
+    .attr('stroke-width', d => Math.max(1.5, rScale(d.incident_count) * 0.2))
+    .attr('stroke-opacity', 0.7);
+
+  nodeG.append('text').attr('class', 'node-label')
+    .attr('dy', d => rScale(d.incident_count) + 11)
+    .attr('text-anchor', 'middle')
+    .text(d => d.incident_count >= 2 ? d.name : '');
+
+  nodeG.on('mouseenter', function(e, d) {
+    d3.select(this).select('text').text(d.name).style('fill', 'var(--text-strong)').style('font-weight', '600');
+    d3.select(this).select('circle').attr('stroke', '#333').attr('stroke-width', 2.5);
+    const connected = new Set();
+    simEdges.forEach(l => {
+      const sid = typeof l.source === 'object' ? l.source.id : l.source;
+      const tid = typeof l.target === 'object' ? l.target.id : l.target;
+      if (sid === d.id) connected.add(tid);
+      if (tid === d.id) connected.add(sid);
+    });
+    link.attr('stroke', l => {
+      const sid = typeof l.source === 'object' ? l.source.id : l.source;
+      const tid = typeof l.target === 'object' ? l.target.id : l.target;
+      return (sid === d.id || tid === d.id) ? 'rgba(0,0,0,.25)' : 'rgba(0,0,0,.03)';
+    });
+    nodeG.select('circle').attr('fill-opacity', n => (n.id === d.id || connected.has(n.id)) ? 0.9 : 0.15);
+  }).on('mouseleave', function() {
+    nodeG.select('text').each(function(d) {
+      d3.select(this).text(d.incident_count >= 2 ? d.name : '').style('fill', null).style('font-weight', null);
+    });
+    nodeG.select('circle')
+      .attr('stroke', d => ENT_ROLE_STROKES[d.role] || '#ccc')
+      .attr('stroke-width', d => Math.max(1.5, rScale(d.incident_count) * 0.2))
+      .attr('fill-opacity', 0.8);
+    link.attr('stroke', 'rgba(0,0,0,.06)');
+  });
+
+  nodeG.append('title').text(d => `${d.name}\n${d.entity_type} (${d.role})\n${d.incident_count} incident(s)`);
+
+  entitySimulation.on('tick', () => {
+    link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    nodeG.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
+
+function renderEntityTable(nodes) {
+  const tbody = document.querySelector('#entity-tbl tbody');
+  if (!tbody) return;
+  const sorted = [...nodes].sort((a, b) => b.incident_count - a.incident_count);
+  tbody.innerHTML = sorted.map(n =>
+    `<tr>
+      <td><strong>${n.name}</strong></td>
+      <td><span class="ent-type">${n.entity_type}</span></td>
+      <td><span class="ent-role ent-role--${n.role}">${n.role.replace('_', ' ')}</span></td>
+      <td>${n.incident_count}</td>
+    </tr>`
+  ).join('');
+}
 
 // ---- Boot ----
 document.addEventListener("DOMContentLoaded", init);
