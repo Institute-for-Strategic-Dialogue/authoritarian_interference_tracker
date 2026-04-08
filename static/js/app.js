@@ -313,7 +313,13 @@ async function refresh() {
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
   try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
   try { renderList(data.incidents || []); } catch(e) { console.error("List:", e); }
-  try { refreshEntityNetwork(); } catch(e) { console.error("EntityNetwork:", e); }
+  if (entityClickRefresh) {
+    entityClickRefresh = false;
+    // Don't re-fetch network — just update node selection visuals
+    renderEntityFiltered();
+  } else {
+    try { refreshEntityNetwork(); } catch(e) { console.error("EntityNetwork:", e); }
+  }
 
   // Update URL with current filter state (without triggering navigation)
   if (!window.prefillIncident) {
@@ -1226,6 +1232,7 @@ const ENT_ROLE_STROKES = {
 let entitySimulation = null;
 let entityRawData = { nodes: [], edges: [] };
 const selectedEntities = new Set();  // clicked entity names for incident filtering
+let entityClickRefresh = false;  // true when refresh was triggered by entity click
 
 async function refreshEntityNetwork() {
   const params = currentParams();
@@ -1335,6 +1342,7 @@ function renderEntityGraph(data) {
     state.filters.q = q;
     $("#search").value = q;
     state.page = 1;
+    entityClickRefresh = true;
     refresh();
   });
 
@@ -1345,6 +1353,7 @@ function renderEntityGraph(data) {
       state.filters.q = '';
       $("#search").value = '';
       state.page = 1;
+      entityClickRefresh = true;
       refresh();
     }
   });
