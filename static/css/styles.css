@@ -148,6 +148,24 @@ html, body {
 @media (max-width: 900px) { .viz-grid { grid-template-columns: 1fr; } }
 .viz-volume #volume-chart { padding: .75rem; min-height: 300px; }
 
+/* ---- Entity network + table ---- */
+.entity-layout {
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  gap: 0;
+  min-height: 420px;
+}
+#entity-graph { min-height: 420px; }
+#entity-table-wrap {
+  overflow-y: auto;
+  max-height: 420px;
+  border-left: 1px solid var(--border-color);
+}
+@media (max-width: 900px) {
+  .entity-layout { grid-template-columns: 1fr; }
+  #entity-table-wrap { border-left: none; border-top: 1px solid var(--border-color); max-height: 250px; }
+}
+
 /* ---- Entity table ---- */
 .entity-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .entity-tbl th { position: sticky; top: 0; background: #f0f2f5; padding: 6px 10px; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; }
