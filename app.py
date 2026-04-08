@@ -228,8 +228,11 @@ def _filter_incidents(incidents, filters):
     out = []
     for inc in incidents:
         if filters.get("q"):
-            hay = f"{inc['title']} {inc['summary']}".lower()
-            if filters["q"].lower() not in hay:
+            entity_names = " ".join(e.get("name", "") for e in (inc.get("entities") or []))
+            hay = f"{inc['title']} {inc['summary']} {entity_names}".lower()
+            # Support multi-word queries (space-separated = match ANY term)
+            terms = filters["q"].lower().split()
+            if not any(t in hay for t in terms):
                 continue
         if filters.get("actors"):
             if not set(inc["actors"]).intersection(filters["actors"]):
