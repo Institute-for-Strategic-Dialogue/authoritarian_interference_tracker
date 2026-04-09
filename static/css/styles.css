@@ -151,6 +151,13 @@ html, body {
   transition: all 150ms;
 }
 .btn-export:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.btn-jump {
+  padding: .3rem .7rem; border: 1px solid var(--primary-color); background: white;
+  border-radius: .4rem; cursor: pointer; color: var(--primary-color); font-size: 12px;
+  text-decoration: none; font-family: 'Space Mono', monospace; letter-spacing: .03em;
+  transition: all 150ms;
+}
+.btn-jump:hover { background: var(--primary-color); color: white; }
 
 /* ---- Cards ---- */
 .card {

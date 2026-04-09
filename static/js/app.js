@@ -344,8 +344,8 @@ async function refresh() {
 
   renderApplied();
   updatePillStates();
-  try { renderVolumeChart(data.volume_over_time || []); } catch(e) { console.error("VolumeChart:", e); }
   try { renderSankey(data.country_actor || [], data.stacked || []); } catch(e) { console.error("Sankey:", e); }
+  try { renderVolumeChart(data.volume_over_time || []); } catch(e) { console.error("VolumeChart:", e); }
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
   try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
   try { renderTtpTreemap(data.ttp_by_type || {}); } catch(e) { console.error("TtpTreemap:", e); }
