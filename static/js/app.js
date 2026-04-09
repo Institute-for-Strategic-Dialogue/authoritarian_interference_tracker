@@ -1266,11 +1266,24 @@ function renderEntityFiltered() {
     if (typeFilter !== 'all' && n.entity_type !== typeFilter) return false;
     return true;
   });
-  const nodeIds = new Set(graphNodes.map(n => n.id));
+  let nodeIds = new Set(graphNodes.map(n => n.id));
   let graphEdges = (entityRawData.edges || []).filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+
+  // When entities are selected, show only their neighborhood
+  if (selectedEntities.size) {
+    const neighbors = new Set(selectedEntities);
+    graphEdges.forEach(e => {
+      if (selectedEntities.has(e.source)) neighbors.add(e.target);
+      if (selectedEntities.has(e.target)) neighbors.add(e.source);
+    });
+    graphNodes = graphNodes.filter(n => neighbors.has(n.id));
+    nodeIds = new Set(graphNodes.map(n => n.id));
+    graphEdges = graphEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+  }
+
   renderEntityGraph({ nodes: graphNodes, edges: graphEdges });
 
-  // Table: respect role + type filters
+  // Table: respect role + type filters, and entity selection
   let tableNodes = allNodes;
   if (roleFilter !== 'all') tableNodes = tableNodes.filter(n => n.role === roleFilter);
   if (typeFilter !== 'all') tableNodes = tableNodes.filter(n => n.entity_type === typeFilter);
