@@ -1402,10 +1402,8 @@ function renderEntityTable(nodes) {
   if (!tbody) return;
   const sorted = [...nodes].sort((a, b) => b.incident_count - a.incident_count);
   tbody.innerHTML = sorted.map(n =>
-    `<tr>
-      <td><strong>${n.name}</strong></td>
-      <td><span class="ent-type">${n.entity_type}</span></td>
-      <td><span class="ent-role ent-role--${n.role}">${n.role.replace('_', ' ')}</span></td>
+    `<tr style="cursor:pointer;" onclick="selectedEntities.clear();selectedEntities.add('${n.id}');state.filters.entities=new Set(selectedEntities);state.page=1;entityClickRefresh=true;refresh();">
+      <td><strong>${n.name}</strong><br><span class="ent-type">${n.entity_type}</span> <span class="ent-role ent-role--${n.role}">${n.role.replace('_', ' ')}</span></td>
       <td>${n.incident_count}</td>
     </tr>`
   ).join('');
