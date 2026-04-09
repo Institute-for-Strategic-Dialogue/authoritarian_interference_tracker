@@ -694,7 +694,7 @@ function renderSankey(countryRows, stackedRows) {
       refresh();
     })
     .append("title")
-    .text(d => `${d.source.name} \u2192 ${d.target.name}: ${d.value}`);
+    .text(d => `${d.source.name} \u2192 ${d.target.name}: ${Math.round(d.value)}`);
 
   // Nodes
   const node = g.append("g")
@@ -778,7 +778,7 @@ function renderSankey(countryRows, stackedRows) {
       if (nodeH >= 36) {
         grp.append("text").attr("x", cx).attr("y", d.y1 - 4)
           .attr("text-anchor", "middle")
-          .text(d.value).style("font-size", "9px").style("fill", "#999")
+          .text(Math.round(d.value)).style("font-size", "9px").style("fill", "#999")
           .style("font-family", "'Space Mono', monospace").style("pointer-events", "none");
       }
     } else {
@@ -797,7 +797,7 @@ function renderSankey(countryRows, stackedRows) {
       if (hasRoom) {
         grp.append("text").attr("x", cx).attr("y", cy + 10).attr("dy", "0.35em")
           .attr("text-anchor", "middle")
-          .text(d.value).style("font-size", "9px").style("fill", "#999")
+          .text(Math.round(d.value)).style("font-size", "9px").style("fill", "#999")
           .style("font-family", "'Space Mono', monospace").style("pointer-events", "none");
       }
     }
