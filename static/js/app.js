@@ -594,9 +594,14 @@ function renderSankey(countryRows, stackedRows) {
   const nodes = [];
   const nodeMap = {};
   let idx = 0;
-  toolsInData.forEach(t => { nodeMap[`tool:${t}`] = idx; nodes.push({ name: t, column: "tool" }); idx++; });
-  actorsInData.forEach(a => { nodeMap[`actor:${a}`] = idx; nodes.push({ name: a, column: "actor" }); idx++; });
-  countryNodes.forEach(c => { nodeMap[`country:${c}`] = idx; nodes.push({ name: c, column: "country" }); idx++; });
+  const countryNodeTotals = {};
+  countryRows.forEach(r => {
+    const country = topSet.has(r.country) ? r.country : (hasOthers ? "Others" : r.country);
+    countryNodeTotals[country] = (countryNodeTotals[country] || 0) + r.count;
+  });
+  toolsInData.forEach(t => { nodeMap[`tool:${t}`] = idx; nodes.push({ name: t, column: "tool", realCount: toolTotals[t] }); idx++; });
+  actorsInData.forEach(a => { nodeMap[`actor:${a}`] = idx; nodes.push({ name: a, column: "actor", realCount: actorTotals[a] }); idx++; });
+  countryNodes.forEach(c => { nodeMap[`country:${c}`] = idx; nodes.push({ name: c, column: "country", realCount: countryNodeTotals[c] || 0 }); idx++; });
 
   // Build links
   // Build raw links and then normalize so both sides of each actor balance
@@ -704,6 +709,13 @@ function renderSankey(countryRows, stackedRows) {
     .append("g")
     .attr("class", "sankey-node");
 
+  function isSankeySelected(d) {
+    if (d.column === "actor") return state.filters.actors.has(d.name);
+    if (d.column === "tool") return state.filters.tools.has(d.name);
+    if (d.column === "country") return state.filters.countries.has(d.name);
+    return false;
+  }
+
   node.append("rect")
     .attr("x", d => d.x0)
     .attr("y", d => d.y0)
@@ -713,14 +725,15 @@ function renderSankey(countryRows, stackedRows) {
       const c = d.column === "actor" ? actorColor(d.name)
               : d.column === "tool" ? toolColor(d.name)
               : "#5c6771";
-      return blendToBase(c, 0.15);
+      return blendToBase(c, isSankeySelected(d) ? 0.35 : 0.15);
     })
     .attr("stroke", d => {
+      if (isSankeySelected(d)) return "#333";
       if (d.column === "actor") return actorColor(d.name);
       if (d.column === "tool") return toolColor(d.name);
       return "#999";
     })
-    .attr("stroke-width", 1.5)
+    .attr("stroke-width", d => isSankeySelected(d) ? 2.5 : 1.5)
     .attr("rx", 4)
     .on("click", (_, d) => {
       if (d.column === "actor") toggleSet(state.filters.actors, d.name);
@@ -778,7 +791,7 @@ function renderSankey(countryRows, stackedRows) {
       if (nodeH >= 36) {
         grp.append("text").attr("x", cx).attr("y", d.y1 - 4)
           .attr("text-anchor", "middle")
-          .text(Math.round(d.value)).style("font-size", "9px").style("fill", "#999")
+          .text(d.realCount || Math.round(d.value)).style("font-size", "9px").style("fill", "#999")
           .style("font-family", "'Space Mono', monospace").style("pointer-events", "none");
       }
     } else {
@@ -797,7 +810,7 @@ function renderSankey(countryRows, stackedRows) {
       if (hasRoom) {
         grp.append("text").attr("x", cx).attr("y", cy + 10).attr("dy", "0.35em")
           .attr("text-anchor", "middle")
-          .text(Math.round(d.value)).style("font-size", "9px").style("fill", "#999")
+          .text(d.realCount || Math.round(d.value)).style("font-size", "9px").style("fill", "#999")
           .style("font-family", "'Space Mono', monospace").style("pointer-events", "none");
       }
     }
