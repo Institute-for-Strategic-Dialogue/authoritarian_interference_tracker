@@ -1237,18 +1237,10 @@ function renderList(incidents) {
       `<span class="tag tag-tool pill-tag" data-v="${t}" style="background:${blendToBase(toolColor(t), 0.12)};border-color:${toolColor(t)};color:#5C6771">${t}</span>`
     ).join("");
 
-    // TTP pills
-    const ttpPills = (inc.ttps || []).map(t =>
-      `<span class="tag tag-ttp">${t}</span>`
-    ).join("");
-
-    // Source links — float right
-    const sourceTags = (inc.source_urls || []).slice(0, 3).map(s => {
-      const domain = extractDomain(s);
-      return `<a href="${s}" target="_blank" rel="noopener" class="tag tag-source" title="${s}">${domain}</a>`;
-    }).join("");
-    const moreSourcesLabel = (inc.source_count || (inc.source_urls||[]).length) > 3
-      ? `<span class="tag" style="opacity:0.5">+${(inc.source_count || (inc.source_urls||[]).length) - 3} more</span>` : "";
+    // Type / TTP combined
+    const ttpSuffix = (inc.ttps || []).length
+      ? ' <span class="tag-sep">/</span> ' + (inc.ttps || []).map(t => `<span class="tag tag-ttp">${t}</span>`).join("")
+      : "";
 
     const adminEditLink = window.isAdmin
       ? `<a href="/ait_admin" class="admin-edit-link" title="Edit in Admin" onclick="event.stopPropagation()">&#9998;</a>` : "";
@@ -1271,10 +1263,10 @@ function renderList(incidents) {
       ${summarySnippet ? `<div class="summary-text">${summarySnippet}${(inc.summary||"").length > 200 ? "..." : ""}</div>` : ""}
       <div class="tags-row">
         <div class="tags tags-left">
-          ${actorPills}${actorPills && countryPills ? sep : ""}${countryPills}${(actorPills || countryPills) && toolPills ? typeSep : ""}${toolPills}
+          ${actorPills}${actorPills && countryPills ? sep : ""}${countryPills}
         </div>
         <div class="tags tags-right">
-          ${ttpPills}${ttpPills && sourceTags ? '<span class="tag-sep">|</span>' : ''}${sourceTags}${moreSourcesLabel}
+          ${toolPills}${ttpSuffix}
         </div>
       </div>
     `;
@@ -1384,46 +1376,46 @@ function openModal(inc) {
   const adminLink = window.isAdmin
     ? `<a href="/review/incident/${inc.id}" title="Edit">&#9998; Edit in Review UI</a>` : "";
 
+  // Build type/TTP combined line: "Cyber Operations / data theft, network intrusion"
+  const typeTtpLine = (inc.tools || []).map(t => {
+    const tc = toolColor(t);
+    const tag = `<span class="modal-tag" style="background:${blendToBase(tc, 0.12)};border-color:${tc};color:#5C6771">${t}</span>`;
+    // Find TTPs belonging to this type
+    const matchingTtps = (inc.ttps || []).filter(ttp => {
+      // Check if this TTP's parent type matches (use display name mapping)
+      return true; // show all TTPs alongside — they're already per-type from extraction
+    });
+    return tag;
+  }).join("") + (inc.ttps && inc.ttps.length ? ' <span style="color:#bbb;margin:0 4px;">/</span> ' +
+    inc.ttps.map(t => `<span class="modal-tag modal-tag--ttp">${t}</span>`).join("") : "");
+
   body.innerHTML = `
     <div class="file-header">
       <h2>${inc.title || "(untitled)"}</h2>
-      <div class="date-range">${yearRange}</div>
+      <div class="date-range">${yearRange}${inc.campaign_name ? ` &middot; ${inc.campaign_name}` : ''}</div>
     </div>
 
-    <div class="field-label">Summary</div>
     <div class="field-value">${inc.summary || "No summary available."}</div>
 
-    <div class="field-label">Threat Actors</div>
-    <div class="field-value"><div class="modal-tags">${actorTags || "None listed"}</div></div>
+    <div class="modal-row">
+      <div><div class="field-label">Threat Actors</div><div class="modal-tags">${actorTags || "—"}</div></div>
+      <div style="text-align:right;"><div class="field-label" style="text-align:right;">Target Countries</div><div class="modal-tags" style="justify-content:flex-end;">${countryTags || "—"}</div></div>
+    </div>
 
-    <div class="field-label">Target Countries</div>
-    <div class="field-value"><div class="modal-tags">${countryTags || "None listed"}</div></div>
-
-    <div class="field-label">Incident Types</div>
-    <div class="field-value"><div class="modal-tags">${toolTags || "None listed"}</div></div>
-
-    ${inc.attribution_basis ? `
-    <div class="field-label">Attribution Basis</div>
-    <div class="field-value">${inc.attribution_basis}</div>
-    ` : ""}
+    <div class="modal-row">
+      <div><div class="field-label">Type / TTPs</div><div class="modal-tags">${typeTtpLine || "—"}</div></div>
+      <div style="text-align:right;"><div class="field-label" style="text-align:right;">Confidence</div><div>${confidence}</div></div>
+    </div>
 
     ${entityTags ? `
     <div class="field-label">Entities</div>
     <div class="field-value"><div class="modal-tags">${entityTags}</div></div>
     ` : ""}
 
-    ${ttpTags ? `
-    <div class="field-label">TTPs</div>
-    <div class="field-value"><div class="modal-tags">${ttpTags}</div></div>
+    ${inc.attribution_basis ? `
+    <div class="field-label">Attribution</div>
+    <div class="field-value" style="font-size:13px;color:#666;">${inc.attribution_basis}</div>
     ` : ""}
-
-    ${inc.campaign_name ? `
-    <div class="field-label">Campaign</div>
-    <div class="field-value">${inc.campaign_name}</div>
-    ` : ""}
-
-    <div class="field-label">Confidence</div>
-    <div class="field-value">${confidence}</div>
 
     ${sourceLinks ? `
     <div class="field-label">Sources</div>
@@ -1441,7 +1433,8 @@ function openModal(inc) {
     ` : ""}
 
     <div class="modal-footer">
-      <a href="/incident/${inc.slug || inc.id}" title="Permalink">Permalink: /incident/${inc.slug || inc.id}</a>
+      <a href="/incident/${inc.slug || inc.id}" title="Permalink">/incident/${inc.slug || inc.id}</a>
+      <button class="btn-copy" onclick="navigator.clipboard.writeText(window.location.origin+'/incident/${inc.slug || inc.id}').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy link',1500);})">Copy link</button>
       ${adminLink}
     </div>
   `;

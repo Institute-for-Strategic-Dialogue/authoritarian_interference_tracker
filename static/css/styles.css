@@ -321,7 +321,7 @@ html, body {
   padding: 1rem;
 }
 .incident-modal {
-  background: #f5f0e8; max-width: 720px; width: 90%; max-height: 85vh;
+  background: #f5f0e8; max-width: 860px; width: 92%; max-height: 85vh;
   overflow-y: auto; border-radius: 4px; padding: 2.5rem 2rem 2rem;
   position: relative; box-shadow: 0 0 50px rgba(0,0,0,.4);
   font-family: 'IBM Plex Sans', sans-serif; color: #222;
@@ -360,6 +360,11 @@ html, body {
   padding: .25rem .6rem; border-radius: 4px; font-size: .75rem;
   font-weight: 600; border: 1.5px solid #ccc; background: #fff;
 }
+.incident-modal .modal-row {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+  margin-top: .75rem; padding-top: .75rem; border-top: 1px solid rgba(0,0,0,.06);
+}
+.incident-modal .modal-row > div { flex: 1; }
 .incident-modal .modal-tag--ent-perp { background: rgba(199,7,77,.1); border-color: #c7074d; color: #c7074d; }
 .incident-modal .modal-tag--ent-tgt { background: rgba(0,104,178,.1); border-color: #0068b2; color: #0068b2; }
 .incident-modal .modal-tag--ent-tool { background: rgba(155,89,182,.1); border-color: #9b59b6; color: #9b59b6; }
@@ -371,6 +376,11 @@ html, body {
   display: flex; justify-content: space-between; align-items: center; font-size: .8rem;
 }
 .incident-modal .modal-footer a { color: var(--accent-blue); text-decoration: none; }
+.incident-modal .btn-copy {
+  padding: 3px 10px; border: 1px solid #ccc; border-radius: 4px; background: white;
+  cursor: pointer; font-size: 12px; color: var(--text-muted); transition: all 150ms;
+}
+.incident-modal .btn-copy:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
 .incident-modal .modal-footer a:hover { text-decoration: underline; }
 .incident-modal .modal-source {
   margin-bottom: .3rem; word-break: break-all; font-size: .85rem; line-height: 1.4;
