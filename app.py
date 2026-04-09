@@ -230,9 +230,11 @@ def _filter_incidents(incidents, filters):
         if filters.get("q"):
             entity_names = " ".join(e.get("name", "") for e in (inc.get("entities") or []))
             hay = f"{inc['title']} {inc['summary']} {entity_names}".lower()
-            # Support multi-word queries (space-separated = match ANY term)
-            terms = filters["q"].lower().split()
-            if not any(t in hay for t in terms):
+            if filters["q"].lower() not in hay:
+                continue
+        if filters.get("entities"):
+            inc_entity_names = {e.get("normalized_name", e.get("name", "")).lower() for e in (inc.get("entities") or [])}
+            if not any(en.lower() in inc_entity_names for en in filters["entities"]):
                 continue
         if filters.get("actors"):
             if not set(inc["actors"]).intersection(filters["actors"]):
@@ -323,6 +325,7 @@ def api_incidents():
         "actors": parse_multi("actors"),
         "countries": parse_multi("countries"),
         "tools": parse_multi("tools"),
+        "entities": parse_multi("entities"),
         "q": request.args.get("q", "").strip() or None,
         "region": request.args.get("region", "").strip() or None,
     }
@@ -464,7 +467,8 @@ def _parse_export_filters():
     return {
         "start": int(s) if s else None, "end": int(e) if e else None,
         "actors": pm("actors"), "countries": pm("countries"),
-        "tools": pm("tools"), "q": request.args.get("q", "").strip() or None,
+        "tools": pm("tools"), "entities": pm("entities"),
+        "q": request.args.get("q", "").strip() or None,
         "region": request.args.get("region", "").strip() or None,
     }
 

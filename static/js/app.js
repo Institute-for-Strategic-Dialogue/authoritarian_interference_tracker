@@ -19,6 +19,7 @@ const state = {
     actors: new Set(),
     countries: new Set(),
     tools: new Set(),
+    entities: new Set(),
     region: ""
   }
 };
@@ -281,6 +282,7 @@ function currentParams() {
   if (state.filters.actors.size) p.set("actors", Array.from(state.filters.actors).join(","));
   if (state.filters.countries.size) p.set("countries", Array.from(state.filters.countries).join(","));
   if (state.filters.tools.size) p.set("tools", Array.from(state.filters.tools).join(","));
+  if (state.filters.entities.size) p.set("entities", Array.from(state.filters.entities).join(","));
   if (state.filters.region) p.set("region", state.filters.region);
   p.set("page", state.page);
   p.set("page_size", state.pageSize);
@@ -347,6 +349,7 @@ function renderApplied() {
   state.filters.tools.forEach(v => chip("Type", v, () => state.filters.tools.delete(v)));
   state.filters.actors.forEach(v => chip("Actor", v, () => state.filters.actors.delete(v)));
   state.filters.countries.forEach(v => chip("Country", v, () => { state.filters.countries.delete(v); $("#country-select").value = ""; }));
+  state.filters.entities.forEach(v => chip("Entity", v, () => { state.filters.entities.delete(v); selectedEntities.delete(v); }));
   if (state.filters.region) chip("Region", state.filters.region, () => { state.filters.region = ""; $("#region-select").value = ""; });
   if (state.filters.start) chip("From", state.filters.start, () => { state.filters.start = null; $("#start-year").value = ""; });
   if (state.filters.end) chip("To", state.filters.end, () => { state.filters.end = null; $("#end-year").value = ""; });
@@ -359,6 +362,8 @@ function clearAll() {
   state.filters.actors.clear();
   state.filters.countries.clear();
   state.filters.tools.clear();
+  state.filters.entities.clear();
+  selectedEntities.clear();
   state.filters.region = ""; $("#region-select").value = "";
   state.filters.start = null; $("#start-year").value = "";
   state.filters.end = null; $("#end-year").value = "";
@@ -1198,6 +1203,7 @@ function buildFilterURL() {
   if (state.filters.actors.size) p.set("actors", Array.from(state.filters.actors).join(","));
   if (state.filters.countries.size) p.set("countries", Array.from(state.filters.countries).join(","));
   if (state.filters.tools.size) p.set("tools", Array.from(state.filters.tools).join(","));
+  if (state.filters.entities.size) p.set("entities", Array.from(state.filters.entities).join(","));
   if (state.filters.region) p.set("region", state.filters.region);
   const qs = p.toString();
   return qs ? `/?${qs}` : "/";
@@ -1312,46 +1318,42 @@ function renderEntityGraph(data) {
   nodeG.append('circle')
     .attr('r', d => rScale(d.incident_count))
     .attr('fill', d => ENT_TYPE_COLORS[d.entity_type] || '#888')
-    .attr('fill-opacity', d => selectedEntities.has(d.name) ? 1.0 : 0.8)
-    .attr('stroke', d => selectedEntities.has(d.name) ? '#333' : (ENT_ROLE_STROKES[d.role] || '#ccc'))
-    .attr('stroke-width', d => selectedEntities.has(d.name) ? 3 : Math.max(1.5, rScale(d.incident_count) * 0.2))
+    .attr('fill-opacity', d => selectedEntities.has(d.id) ? 1.0 : 0.8)
+    .attr('stroke', d => selectedEntities.has(d.id) ? '#333' : (ENT_ROLE_STROKES[d.role] || '#ccc'))
+    .attr('stroke-width', d => selectedEntities.has(d.id) ? 3 : Math.max(1.5, rScale(d.incident_count) * 0.2))
     .attr('stroke-opacity', 0.7);
 
   nodeG.append('text').attr('class', 'node-label')
     .attr('dy', d => rScale(d.incident_count) + 11)
     .attr('text-anchor', 'middle')
-    .style('font-weight', d => selectedEntities.has(d.name) ? '700' : null)
+    .style('font-weight', d => selectedEntities.has(d.id) ? '700' : null)
     .text(d => d.incident_count >= 2 ? d.name : '');
 
-  // Click: filter incidents by entity name (ctrl+click for multi-select)
+  // Click: filter incidents by entity (ctrl/cmd+click for multi-select)
   nodeG.on('click', function(e, d) {
     e.stopPropagation();
     if (e.ctrlKey || e.metaKey) {
-      if (selectedEntities.has(d.name)) selectedEntities.delete(d.name);
-      else selectedEntities.add(d.name);
+      if (selectedEntities.has(d.id)) selectedEntities.delete(d.id);
+      else selectedEntities.add(d.id);
     } else {
-      if (selectedEntities.size === 1 && selectedEntities.has(d.name)) {
+      if (selectedEntities.size === 1 && selectedEntities.has(d.id)) {
         selectedEntities.clear();
       } else {
         selectedEntities.clear();
-        selectedEntities.add(d.name);
+        selectedEntities.add(d.id);
       }
     }
-    // Set search to selected entity names
-    const q = Array.from(selectedEntities).join(' ');
-    state.filters.q = q;
-    $("#search").value = q;
+    state.filters.entities = new Set(selectedEntities);
     state.page = 1;
     entityClickRefresh = true;
     refresh();
   });
 
-  // Click on SVG background to clear selection
+  // Click on SVG background to clear entity selection
   svg.on('click', function() {
     if (selectedEntities.size) {
       selectedEntities.clear();
-      state.filters.q = '';
-      $("#search").value = '';
+      state.filters.entities.clear();
       state.page = 1;
       entityClickRefresh = true;
       refresh();
@@ -1377,12 +1379,12 @@ function renderEntityGraph(data) {
   }).on('mouseleave', function() {
     nodeG.select('text').each(function(d) {
       d3.select(this).text(d.incident_count >= 2 ? d.name : '').style('fill', null)
-        .style('font-weight', selectedEntities.has(d.name) ? '700' : null);
+        .style('font-weight', selectedEntities.has(d.id) ? '700' : null);
     });
     nodeG.select('circle')
-      .attr('stroke', d => selectedEntities.has(d.name) ? '#333' : (ENT_ROLE_STROKES[d.role] || '#ccc'))
-      .attr('stroke-width', d => selectedEntities.has(d.name) ? 3 : Math.max(1.5, rScale(d.incident_count) * 0.2))
-      .attr('fill-opacity', d => selectedEntities.has(d.name) ? 1.0 : 0.8);
+      .attr('stroke', d => selectedEntities.has(d.id) ? '#333' : (ENT_ROLE_STROKES[d.role] || '#ccc'))
+      .attr('stroke-width', d => selectedEntities.has(d.id) ? 3 : Math.max(1.5, rScale(d.incident_count) * 0.2))
+      .attr('fill-opacity', d => selectedEntities.has(d.id) ? 1.0 : 0.8);
     link.attr('stroke', 'rgba(0,0,0,.06)');
   });
 
