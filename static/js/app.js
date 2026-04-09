@@ -772,21 +772,34 @@ function renderSankey(countryRows, stackedRows) {
         .style("font-weight", fontWeight)
         .style("font-family", "'IBM Plex Sans', sans-serif")
         .style("pointer-events", "none");
-      textEl.append("tspan").attr("x", cx).attr("dy", "-0.4em").text(line1);
-      textEl.append("tspan").attr("x", cx).attr("dy", "1.2em").text(line2);
+      textEl.append("tspan").attr("x", cx).attr("dy", "-0.6em").text(line1);
+      textEl.append("tspan").attr("x", cx).attr("dy", "1.1em").text(line2);
       textEl.attr("y", cy);
+      if (nodeH >= 36) {
+        grp.append("text").attr("x", cx).attr("y", d.y1 - 4)
+          .attr("text-anchor", "middle")
+          .text(d.value).style("font-size", "9px").style("fill", "#999")
+          .style("font-family", "'Space Mono', monospace").style("pointer-events", "none");
+      }
     } else {
       // Single line, truncate if needed
       const maxChars = d.column === "actor" ? 14 : 16;
       const label = d.name.length > maxChars ? d.name.substring(0, maxChars - 1) + "…" : d.name;
+      const hasRoom = nodeH >= 28;
       grp.append("text")
-        .attr("x", cx).attr("y", cy).attr("dy", "0.35em")
+        .attr("x", cx).attr("y", hasRoom ? cy - 3 : cy).attr("dy", "0.35em")
         .attr("text-anchor", "middle")
         .text(label)
         .style("font-size", fontSize + "px").style("fill", fill)
         .style("font-weight", fontWeight)
         .style("font-family", "'IBM Plex Sans', sans-serif")
         .style("pointer-events", "none");
+      if (hasRoom) {
+        grp.append("text").attr("x", cx).attr("y", cy + 10).attr("dy", "0.35em")
+          .attr("text-anchor", "middle")
+          .text(d.value).style("font-size", "9px").style("fill", "#999")
+          .style("font-family", "'Space Mono', monospace").style("pointer-events", "none");
+      }
     }
   });
 }
