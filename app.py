@@ -31,7 +31,7 @@ TOOL_DISPLAY = {
     "kinetic_operations": "Kinetic Operations",
     "information_manipulation": "Information Operations",
     "malign_finance": "Malign Finance",
-    "civil_society_subversion": "Civil Society Subversion",
+    "civil_society_subversion": "Political & Civic Subversion",
     "economic_coercion": "Economic Coercion",
 }
 
@@ -74,10 +74,10 @@ _TTP_PARENT = {
     "hack-and-leak": "Information Operations", "impersonation": "Information Operations",
     "covert funding": "Malign Finance", "sanctions evasion": "Malign Finance",
     "corruption": "Malign Finance",
-    "agent recruitment": "Civil Society Subversion",
-    "transnational repression": "Civil Society Subversion",
-    "infiltration": "Civil Society Subversion",
-    "front organization": "Civil Society Subversion",
+    "agent recruitment": "Political & Civic Subversion",
+    "transnational repression": "Political & Civic Subversion",
+    "infiltration": "Political & Civic Subversion",
+    "front organization": "Political & Civic Subversion",
     "energy coercion": "Economic Coercion", "trade coercion": "Economic Coercion",
     "debt leverage": "Economic Coercion",
 }

@@ -36,7 +36,7 @@ const INCIDENT_TYPES = [
   { name: "Kinetic Operations",      color: "#C7074D" },  // ISD Red
   { name: "Information Operations",  color: "#D4A843" },  // Warm gold
   { name: "Malign Finance",          color: "#3A8A6E" },  // Muted green
-  { name: "Civil Society Subversion",color: "#4C4193" },  // ISD Purple
+  { name: "Political & Civic Subversion",color: "#4C4193" },  // ISD Purple
   { name: "Economic Coercion",       color: "#E76863" }   // ISD Coral
 ];
 const INCIDENT_TYPE_MAP = {};
