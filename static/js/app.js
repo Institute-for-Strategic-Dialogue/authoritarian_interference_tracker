@@ -1026,8 +1026,7 @@ function renderTtpTreemap(ttpByType) {
     .sum(d => d.value || 0)
     .sort((a, b) => b.value - a.value);
 
-  // tile.slice favors wide rectangles (easier to read labels)
-  d3.treemap().tile(d3.treemapSlice).size([width, height]).padding(2).paddingTop(16).round(true)(root);
+  d3.treemap().size([width, height]).padding(2).paddingTop(16).round(true)(root);
 
   const svg = el.append("svg").attr("width", width).attr("height", height);
 
