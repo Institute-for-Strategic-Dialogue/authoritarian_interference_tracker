@@ -232,7 +232,7 @@ html, body {
 #entity-graph svg .node-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; fill: var(--text-muted); pointer-events: none; }
 
 /* ---- Sankey ---- */
-.viz-sankey #sankey-chart { padding: .75rem; min-height: 300px; overflow: hidden; }
+.viz-sankey #sankey-chart { padding: .5rem; overflow: hidden; }
 
 /* ---- Map ---- */
 .mapcard { margin-top: 1rem; }

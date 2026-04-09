@@ -550,7 +550,7 @@ function renderSankey(countryRows, stackedRows) {
 
   const container = document.querySelector(".viz-sankey");
   const width = Math.min(1200, container.clientWidth - 32);
-  const height = 580;
+  const height = 380;
   const margin = { top: 10, right: 16, bottom: 10, left: 16 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
@@ -567,7 +567,7 @@ function renderSankey(countryRows, stackedRows) {
   const countryTotals = {};
   countryRows.forEach(r => { countryTotals[r.country] = (countryTotals[r.country] || 0) + r.count; });
   const sortedCountries = Object.entries(countryTotals).sort((a, b) => b[1] - a[1]);
-  const topCountries = sortedCountries.slice(0, 15).map(([n]) => n);
+  const topCountries = sortedCountries.slice(0, 10).map(([n]) => n);
   const topSet = new Set(topCountries);
   const hasOthers = sortedCountries.length > 15;
 
