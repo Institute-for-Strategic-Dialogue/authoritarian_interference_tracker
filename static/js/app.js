@@ -431,7 +431,7 @@ function renderVolumeChart(rows) {
   const svg = el.append("svg").attr("width", width).attr("height", height);
   const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Pivot data: consolidate pre-2014 into "<2010"
+  // Pivot data: consolidate pre-2014 into "Pre"
   const rawYears = Array.from(new Set(rows.map(d => d.year))).filter(y => y <= CURRENT_YEAR).sort((a, b) => a - b);
   const actors = Array.from(new Set(rows.map(d => d.actor))).sort();
   const lookup = {};
@@ -442,13 +442,13 @@ function renderVolumeChart(rows) {
 
   const hasPre = rawYears.some(y => y < 2010);
   const postYears = rawYears.filter(y => y >= 2010);
-  const years = hasPre ? ["<2010", ...postYears] : [...postYears];
+  const years = hasPre ? ["Pre", ...postYears] : [...postYears];
 
   // Build stack data
   const stackData = years.map(yr => {
     const obj = { year: yr };
     actors.forEach(a => {
-      obj[a] = yr === "<2010" ? (lookup[`pre_${a}`] || 0) : (lookup[`${yr}_${a}`] || 0);
+      obj[a] = yr === "Pre" ? (lookup[`pre_${a}`] || 0) : (lookup[`${yr}_${a}`] || 0);
     });
     return obj;
   });
@@ -463,7 +463,7 @@ function renderVolumeChart(rows) {
   // X axis
   const xAxis = g.append("g")
     .attr("transform", `translate(0,${innerH})`)
-    .call(d3.axisBottom(x).tickValues(years.filter((y, i) => y === "<2010" || i % 2 === (years[0] === "<2010" ? 1 : 0))).tickSize(0));
+    .call(d3.axisBottom(x).tickValues(years.filter(y => y === "Pre" || (typeof y === "number" && y % 2 === 1))).tickSize(0));
   xAxis.selectAll("text").style("fill", "#5C6771").style("font-size", "12px");
   xAxis.select(".domain").style("stroke", "rgba(255,255,255,0.1)");
 
@@ -491,7 +491,7 @@ function renderVolumeChart(rows) {
       .attr("rx", 1)
       .on("click", (_, d) => {
         toggleSet(state.filters.actors, actorName);
-        if (d.data.year === "<2010") {
+        if (d.data.year === "Pre") {
           state.filters.start = null;
           state.filters.end = 2013;
           $("#start-year").value = "";
@@ -510,7 +510,7 @@ function renderVolumeChart(rows) {
 
   // Visual break between pre-2014 and 2014+
   if (hasPre && years.length > 1) {
-    const breakX = x("<2010") + x.bandwidth() + x.step() * 0.075;
+    const breakX = x("Pre") + x.bandwidth() + x.step() * 0.075;
     g.append("line")
       .attr("x1", breakX).attr("x2", breakX)
       .attr("y1", -4).attr("y2", innerH + 4)
