@@ -1303,6 +1303,8 @@ function renderEntityGraph(data) {
   const width = container.clientWidth || 500;
   const height = container.clientHeight || 400;
   const svg = d3.select(container).append('svg').attr('viewBox', [0, 0, width, height]);
+  const g = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.3, 5]).on('zoom', (e) => g.attr('transform', e.transform)));
 
   const maxCount = d3.max(nodes, d => d.incident_count) || 1;
   const rScale = d3.scaleSqrt().domain([1, maxCount]).range([4, 24]);
@@ -1317,10 +1319,10 @@ function renderEntityGraph(data) {
     .force('center', d3.forceCenter(width / 2, height / 2))
     .force('collision', d3.forceCollide().radius(d => rScale(d.incident_count) + 12));
 
-  const link = svg.append('g').selectAll('line').data(simEdges).join('line')
+  const link = g.append('g').selectAll('line').data(simEdges).join('line')
     .attr('stroke', 'rgba(0,0,0,.06)').attr('stroke-width', d => Math.min(d.weight * 0.7, 3));
 
-  const nodeG = svg.append('g').selectAll('g').data(simNodes).join('g')
+  const nodeG = g.append('g').selectAll('g').data(simNodes).join('g')
     .style('cursor', 'pointer')
     .call(d3.drag()
       .on('start', (e, d) => { if (!e.active) entitySimulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
