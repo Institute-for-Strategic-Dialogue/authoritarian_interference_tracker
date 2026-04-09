@@ -81,6 +81,7 @@
           <div id="applied" class="applied"></div>
           <div class="filter-actions">
             <button id="clearAll" class="btn-clear">Clear All</button>
+            <a href="#incident-list" class="btn-export" title="Jump to incident list">&#8595; Incidents</a>
             <a id="export-csv" href="/export/incidents.csv" class="btn-export" title="Export filtered incidents as CSV">&#11123; CSV</a>
             <a id="export-xlsx" href="/export/incidents.xlsx" class="btn-export" title="Export filtered incidents as Excel">&#11123; XLSX</a>
           </div>
@@ -164,7 +165,7 @@
     </section>
 
     <!-- 7. Incident list -->
-    <section class="card list-section">
+    <section class="card list-section" id="incident-list">
       <div class="card-title">
         INCIDENTS <span class="sub">reverse chronological</span>
       </div>
