@@ -747,6 +747,28 @@ function renderSankey(countryRows, stackedRows) {
       refresh();
     });
 
+  // Hover tooltip
+  const tooltip = el.append("div")
+    .style("position", "absolute").style("pointer-events", "none").style("display", "none")
+    .style("background", "rgba(255,255,255,0.95)").style("border", "1px solid #ccc")
+    .style("border-radius", "4px").style("padding", "4px 8px").style("font-size", "12px")
+    .style("font-family", "'IBM Plex Sans', sans-serif").style("box-shadow", "0 2px 8px rgba(0,0,0,.1)")
+    .style("z-index", "100").style("white-space", "nowrap");
+
+  // Make container relative for tooltip positioning
+  el.style("position", "relative");
+
+  node.on("mouseenter", function(e, d) {
+    const count = d.realCount || Math.round(d.value);
+    tooltip.html(`<strong>${d.name}</strong> <span style="color:#999;margin-left:4px;">${count}</span>`)
+      .style("display", "block")
+      .style("left", ((d.x0 + d.x1) / 2 + margin.left) + "px")
+      .style("top", (d.y0 + margin.top - 28) + "px")
+      .style("transform", "translateX(-50%)");
+  }).on("mouseleave", function() {
+    tooltip.style("display", "none");
+  });
+
   // Labels — inside the node rects
   const nodeW = 130;
   node.each(function(d) {
