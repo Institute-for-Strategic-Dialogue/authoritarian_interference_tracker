@@ -1417,11 +1417,31 @@ function renderEntityTable(nodes) {
   if (!tbody) return;
   const sorted = [...nodes].sort((a, b) => b.incident_count - a.incident_count);
   tbody.innerHTML = sorted.map(n =>
-    `<tr style="cursor:pointer;" onclick="selectedEntities.clear();selectedEntities.add('${n.id}');state.filters.entities=new Set(selectedEntities);state.page=1;entityClickRefresh=true;refresh();">
+    `<tr class="ent-row ${selectedEntities.has(n.id) ? 'ent-row--selected' : ''}" style="cursor:pointer;" data-eid="${n.id}">
       <td><strong>${n.name}</strong><br><span class="ent-type">${n.entity_type}</span> <span class="ent-role ent-role--${n.role}">${n.role.replace('_', ' ')}</span></td>
       <td>${n.incident_count}</td>
     </tr>`
   ).join('');
+  tbody.querySelectorAll('.ent-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      const eid = row.dataset.eid;
+      if (e.ctrlKey || e.metaKey) {
+        if (selectedEntities.has(eid)) selectedEntities.delete(eid);
+        else selectedEntities.add(eid);
+      } else {
+        if (selectedEntities.size === 1 && selectedEntities.has(eid)) {
+          selectedEntities.clear();
+        } else {
+          selectedEntities.clear();
+          selectedEntities.add(eid);
+        }
+      }
+      state.filters.entities = new Set(selectedEntities);
+      state.page = 1;
+      entityClickRefresh = true;
+      refresh();
+    });
+  });
 }
 
 // ---- Entity controls ----

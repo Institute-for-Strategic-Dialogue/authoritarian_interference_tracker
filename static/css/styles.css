@@ -186,6 +186,7 @@ html, body {
 .entity-tbl th:hover { color: var(--text-strong); }
 .entity-tbl td { padding: 4px 10px; border-top: 1px solid var(--border-color); }
 .entity-tbl tr:hover td { background: rgba(0,0,0,.02); }
+.entity-tbl tr.ent-row--selected td { background: rgba(199,7,77,.08); font-weight: 600; }
 .entity-tbl .ent-role { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
 .entity-tbl .ent-role--perpetrator { background: rgba(199,7,77,.12); color: #c7074d; }
 .entity-tbl .ent-role--target { background: rgba(0,104,178,.12); color: #0068b2; }
