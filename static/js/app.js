@@ -463,7 +463,7 @@ function renderVolumeChart(rows) {
   // X axis
   const xAxis = g.append("g")
     .attr("transform", `translate(0,${innerH})`)
-    .call(d3.axisBottom(x).tickValues(years.filter((_, i) => i % Math.max(1, Math.floor(years.length / 10)) === 0)).tickSize(0));
+    .call(d3.axisBottom(x).tickValues(years.filter((y, i) => y === "<2010" || i % 2 === (years[0] === "<2010" ? 1 : 0))).tickSize(0));
   xAxis.selectAll("text").style("fill", "#5C6771").style("font-size", "12px");
   xAxis.select(".domain").style("stroke", "rgba(255,255,255,0.1)");
 
