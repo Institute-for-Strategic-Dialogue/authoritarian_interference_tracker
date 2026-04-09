@@ -1404,7 +1404,6 @@ function openModal(inc) {
 
     <div class="modal-row">
       <div><div class="field-label">Type / TTPs</div><div class="modal-tags">${typeTtpLine || "—"}</div></div>
-      <div style="text-align:right;"><div class="field-label" style="text-align:right;">Confidence</div><div>${confidence}</div></div>
     </div>
 
     ${entityTags ? `
