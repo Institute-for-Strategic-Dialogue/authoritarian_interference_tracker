@@ -325,6 +325,12 @@ html, body {
   padding: .25rem .6rem; border-radius: 4px; font-size: .75rem;
   font-weight: 600; border: 1.5px solid #ccc; background: #fff;
 }
+.incident-modal .modal-tag--ent-perp { background: rgba(199,7,77,.1); border-color: #c7074d; color: #c7074d; }
+.incident-modal .modal-tag--ent-tgt { background: rgba(0,104,178,.1); border-color: #0068b2; color: #0068b2; }
+.incident-modal .modal-tag--ent-tool { background: rgba(155,89,182,.1); border-color: #9b59b6; color: #9b59b6; }
+.incident-modal .modal-tag--ent-src { background: rgba(92,103,113,.1); border-color: #999; color: #666; }
+.incident-modal .modal-tag--ttp { background: rgba(0,0,0,.04); border-color: #ccc; color: #5c6771; font-weight: 500; }
+.incident-modal .modal-related:hover { background: rgba(0,0,0,.03); }
 .incident-modal .modal-footer {
   margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #ddd;
   display: flex; justify-content: space-between; align-items: center; font-size: .8rem;

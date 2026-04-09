@@ -6,6 +6,7 @@
 let config = null;
 let meta = null;
 let lastData = null; // cache last API response for cross-filtering
+let _allIncidentsCache = []; // all incidents for related-incident lookup
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -108,6 +109,7 @@ async function init() {
   if (urlParams.get("actors")) { urlParams.get("actors").split(",").forEach(a => state.filters.actors.add(a)); }
   if (urlParams.get("countries")) { urlParams.get("countries").split(",").forEach(c => state.filters.countries.add(c)); }
   if (urlParams.get("tools")) { urlParams.get("tools").split(",").forEach(t => state.filters.tools.add(t)); }
+  if (urlParams.get("entities")) { urlParams.get("entities").split(",").forEach(e => state.filters.entities.add(e)); }
   if (urlParams.get("region")) { state.filters.region = urlParams.get("region"); }
 
   buildFilterUI();
@@ -121,6 +123,13 @@ async function init() {
 
   bindEvents();
   await refresh();
+
+  // Load all incidents for related-incident lookup (unpaginated)
+  try {
+    const allRes = await fetch("/api/incidents?page=1&page_size=2000");
+    const allData = await allRes.json();
+    _allIncidentsCache = allData.incidents || [];
+  } catch(e) { console.error("AllIncidents cache:", e); }
 
   // Auto-open modal if arriving via permalink
   if (window.prefillIncident) {
@@ -313,13 +322,8 @@ async function refresh() {
   try { renderVolumeChart(data.volume_over_time || []); } catch(e) { console.error("VolumeChart:", e); }
   try { renderSankey(data.country_actor || [], data.stacked || []); } catch(e) { console.error("Sankey:", e); }
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
-  ttpByType = data.ttp_by_type || {};
-  if (stackedDrillType && ttpByType[stackedDrillType]) {
-    try { renderTtpDrilldown(ttpByType[stackedDrillType], stackedDrillType); } catch(e) { console.error("TtpDrill:", e); }
-  } else {
-    stackedDrillType = null;
-    try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
-  }
+  try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
+  try { renderTtpTreemap(data.ttp_by_type || {}); } catch(e) { console.error("TtpTreemap:", e); }
   try { renderList(data.incidents || []); } catch(e) { console.error("List:", e); }
   if (entityClickRefresh) {
     entityClickRefresh = false;
@@ -894,11 +898,8 @@ function donutSVG(counts, total) {
 }
 
 // ========================================================================
-// STACKED BAR CHART (incident types by actor, with TTP drill-down)
+// STACKED BAR CHART (incident types by actor)
 // ========================================================================
-let ttpByType = {};  // populated from API
-let stackedDrillType = null;  // null = types view, string = drilled into TTPs for that type
-
 function renderStacked(rows) {
   const el = d3.select("#stackedbar");
   el.selectAll("*").remove();
@@ -935,14 +936,7 @@ function renderStacked(rows) {
   tools.forEach(tool => {
     const tc = toolColor(tool);
     const grp = svg.append("g").attr("class", "axis-click").style("cursor", "pointer")
-      .on("click", () => {
-        if (ttpByType[tool] && ttpByType[tool].length) {
-          stackedDrillType = tool;
-          renderTtpDrilldown(ttpByType[tool], tool);
-        } else {
-          toggleSet(state.filters.tools, tool); state.page = 1; refresh();
-        }
-      });
+      .on("click", () => { toggleSet(state.filters.tools, tool); state.page = 1; refresh(); });
 
     grp.append("rect")
       .attr("x", 8).attr("y", y(tool) + 1)
@@ -1001,90 +995,90 @@ function renderStacked(rows) {
   });
 }
 
-function renderTtpDrilldown(rows, typeName) {
-  const el = d3.select("#stackedbar");
+// ========================================================================
+// TTP TREEMAP (nested: incident type > TTP, sized by count)
+// ========================================================================
+function renderTtpTreemap(ttpByType) {
+  const el = d3.select("#ttp-treemap");
+  if (!el.node()) return;
   el.selectAll("*").remove();
 
-  if (!rows.length) {
-    el.append("div").style("padding", "2rem").style("color", "#666").text("No TTPs for this type.");
+  // Build hierarchy: root > incident_type > ttp
+  const children = [];
+  for (const [type, rows] of Object.entries(ttpByType)) {
+    if (!rows || !rows.length) continue;
+    const ttpCounts = {};
+    rows.forEach(r => { ttpCounts[r.ttp] = (ttpCounts[r.ttp] || 0) + r.count; });
+    const typeChildren = Object.entries(ttpCounts).map(([ttp, count]) => ({ name: ttp, value: count, type }));
+    if (typeChildren.length) children.push({ name: type, children: typeChildren });
+  }
+
+  if (!children.length) {
+    el.append("div").style("padding", "1rem").style("color", "#999").style("text-align", "center").style("font-size", "13px").text("No TTPs yet.");
     return;
   }
 
-  // Update card title
-  const titleEl = document.querySelector(".stacked-section .card-title");
-  if (titleEl) titleEl.innerHTML = `<span class="ttp-back" style="cursor:pointer;margin-right:8px;color:var(--primary-color);">&#9664;</span>TTPs: ${typeName} <span class="sub">by threat actor</span>`;
-  const backBtn = document.querySelector(".ttp-back");
-  if (backBtn) backBtn.addEventListener("click", () => {
-    stackedDrillType = null;
-    if (titleEl) titleEl.innerHTML = 'INCIDENT TYPES <span class="sub">by Threat Actor</span>';
-    renderStacked(lastData.stacked || []);
-  });
+  const container = el.node();
+  const width = container.clientWidth || 800;
+  const height = 120;
 
-  const ttps = Array.from(new Set(rows.map(d => d.ttp))).sort();
-  const actors = Array.from(new Set(rows.map(d => d.actor))).sort();
+  const root = d3.hierarchy({ name: "root", children })
+    .sum(d => d.value || 0)
+    .sort((a, b) => b.value - a.value);
 
-  const nested = d3.rollup(rows, v => {
-    const byActor = d3.rollup(v, vv => d3.sum(vv, d => d.count), d => d.actor);
-    return Object.fromEntries(byActor);
-  }, d => d.ttp);
-  const seriesData = ttps.map(t => ({ ttp: t, ...nested.get(t) }));
-
-  const container = document.querySelector(".stacked-section");
-  const width = Math.min(1200, container.clientWidth - 32);
-  const height = Math.max(160, ttps.length * 32 + 60);
+  d3.treemap().size([width, height]).padding(1).paddingTop(14).round(true)(root);
 
   const svg = el.append("svg").attr("width", width).attr("height", height);
-  const labelW = 180;
 
-  const x = d3.scaleLinear()
-    .domain([0, d3.max(seriesData, d => d3.sum(actors, a => d[a] || 0)) || 1])
-    .range([labelW, width - 20]);
+  // Type groups
+  const typeGroups = svg.selectAll("g.type-group")
+    .data(root.children || [])
+    .join("g").attr("class", "type-group");
 
-  const y = d3.scaleBand().domain(ttps).range([16, height - 16]).paddingInner(0.25);
+  // Type header background
+  typeGroups.append("rect")
+    .attr("x", d => d.x0).attr("y", d => d.y0)
+    .attr("width", d => d.x1 - d.x0).attr("height", d => d.y1 - d.y0)
+    .attr("fill", "none").attr("stroke", "rgba(0,0,0,.08)").attr("rx", 3);
 
-  // TTP labels
-  ttps.forEach(ttp => {
-    svg.append("text")
-      .attr("x", labelW - 8).attr("y", y(ttp) + y.bandwidth() / 2 + 4)
-      .attr("text-anchor", "end")
-      .style("font-size", "11px").style("fill", "#5C6771").style("font-weight", "500")
-      .style("font-family", "'IBM Plex Sans', sans-serif")
-      .text(ttp);
-  });
+  // Type label
+  typeGroups.append("text")
+    .attr("x", d => d.x0 + 4).attr("y", d => d.y0 + 10)
+    .style("font-size", "9px").style("fill", "#999").style("font-weight", "600")
+    .style("font-family", "'Space Mono', monospace").style("text-transform", "uppercase")
+    .text(d => d.data.name.replace(/_/g, " "));
 
-  // Stacked segments
-  ttps.forEach(ttp => {
-    let x0 = labelW;
-    actors.forEach(actor => {
-      const value = (seriesData.find(s => s.ttp === ttp)?.[actor]) || 0;
-      if (!value) return;
-      const barW = x(value) - x(0);
-      svg.append("rect")
-        .attr("x", x0).attr("y", y(ttp))
-        .attr("width", barW).attr("height", y.bandwidth())
-        .attr("fill", actorColor(actor))
-        .attr("rx", 1)
-        .append("title").text(`${ttp} \u2022 ${actor}: ${value}`);
-      x0 += barW;
+  // TTP leaves
+  const leaves = svg.selectAll("g.leaf")
+    .data(root.leaves())
+    .join("g").attr("class", "leaf");
+
+  leaves.append("rect")
+    .attr("x", d => d.x0).attr("y", d => d.y0)
+    .attr("width", d => Math.max(0, d.x1 - d.x0)).attr("height", d => Math.max(0, d.y1 - d.y0))
+    .attr("fill", d => {
+      const tc = toolColor(d.parent.data.name);
+      return tc ? blendToBase(tc, 0.25) : "rgba(0,0,0,.06)";
+    })
+    .attr("rx", 2)
+    .style("cursor", "pointer")
+    .on("click", (e, d) => {
+      // Could filter by TTP in the future
     });
-  });
 
-  // Actor legend
-  const legend = svg.append("g").attr("transform", `translate(${labelW + 8}, ${height - 14})`);
-  let legendX = 0;
-  actors.forEach((a) => {
-    const ac = actorColor(a);
-    const lg = legend.append("g").attr("transform", `translate(${legendX}, 0)`);
-    const txt = lg.append("text").attr("y", 11).text(a)
-      .style("font-size", "11px").style("fill", "#5C6771").style("font-weight", "600")
-      .style("font-family", "'IBM Plex Sans', sans-serif");
-    const tw = txt.node().getComputedTextLength();
-    lg.insert("rect", "text").attr("x", -6).attr("y", -1).attr("width", tw + 12)
-      .attr("height", 15).attr("rx", 4)
-      .attr("fill", blendToBase(ac, 0.12))
-      .attr("stroke", ac).attr("stroke-width", 1.5);
-    legendX += tw + 20;
-  });
+  leaves.append("text")
+    .attr("x", d => d.x0 + 3).attr("y", d => d.y0 + (d.y1 - d.y0) / 2 + 3)
+    .style("font-size", d => (d.x1 - d.x0) < 50 ? "0" : "9px")
+    .style("fill", "#5C6771").style("font-weight", "500")
+    .style("font-family", "'IBM Plex Sans', sans-serif")
+    .text(d => {
+      const w = d.x1 - d.x0;
+      if (w < 50) return "";
+      const label = `${d.data.name} (${d.data.value})`;
+      return w < 90 ? d.data.name : label;
+    });
+
+  leaves.append("title").text(d => `${d.parent.data.name} > ${d.data.name}: ${d.data.value}`);
 }
 
 // ========================================================================
@@ -1229,6 +1223,33 @@ function openModal(inc) {
     `<div class="modal-source"><a href="${s}" target="_blank" rel="noopener">${s}</a></div>`
   ).join("");
 
+  const entityTags = (inc.entities || []).map(e => {
+    const cls = e.role === 'perpetrator' || e.role === 'attributed_group' ? 'ent-perp'
+      : e.role === 'target' ? 'ent-tgt' : e.role === 'tool' ? 'ent-tool' : 'ent-src';
+    return `<span class="modal-tag modal-tag--${cls}" title="${e.entity_type} — ${e.role}">${e.name}</span>`;
+  }).join("");
+
+  const ttpTags = (inc.ttps || []).map(t =>
+    `<span class="modal-tag modal-tag--ttp">${t}</span>`
+  ).join("");
+
+  // Find related incidents (shared entities, excluding self)
+  const incEntityIds = new Set((inc.entities || []).map(e => (e.normalized_name || e.name).toLowerCase()));
+  let related = [];
+  if (lastData && lastData.incidents && incEntityIds.size) {
+    const allIncs = _allIncidentsCache || [];
+    related = allIncs
+      .filter(other => other.id !== inc.id)
+      .map(other => {
+        const otherIds = new Set((other.entities || []).map(e => (e.normalized_name || e.name).toLowerCase()));
+        const overlap = [...incEntityIds].filter(id => otherIds.has(id)).length;
+        return { ...other, overlap };
+      })
+      .filter(o => o.overlap > 0)
+      .sort((a, b) => b.overlap - a.overlap)
+      .slice(0, 5);
+  }
+
   const confPct = inc.confidence_score != null ? Math.round(inc.confidence_score * 100) : null;
   const confidence = confPct != null
     ? `${confPct}%
@@ -1261,6 +1282,16 @@ function openModal(inc) {
     <div class="field-value">${inc.attribution_basis}</div>
     ` : ""}
 
+    ${entityTags ? `
+    <div class="field-label">Entities</div>
+    <div class="field-value"><div class="modal-tags">${entityTags}</div></div>
+    ` : ""}
+
+    ${ttpTags ? `
+    <div class="field-label">TTPs</div>
+    <div class="field-value"><div class="modal-tags">${ttpTags}</div></div>
+    ` : ""}
+
     ${inc.campaign_name ? `
     <div class="field-label">Campaign</div>
     <div class="field-value">${inc.campaign_name}</div>
@@ -1274,11 +1305,30 @@ function openModal(inc) {
     <div class="field-value">${sourceLinks}</div>
     ` : ""}
 
+    ${related.length ? `
+    <div class="field-label">Related Incidents <span style="font-weight:400;color:#999;">(shared entities)</span></div>
+    <div class="field-value">
+      ${related.map(r => `<div class="modal-related" data-id="${r.id}" style="cursor:pointer;padding:4px 0;border-bottom:1px solid rgba(0,0,0,.05);">
+        <strong>${r.title}</strong>
+        <span style="color:#999;font-size:12px;margin-left:6px;">${r.overlap} shared</span>
+      </div>`).join("")}
+    </div>
+    ` : ""}
+
     <div class="modal-footer">
       <a href="/incident/${inc.slug || inc.id}" title="Permalink">Permalink: /incident/${inc.slug || inc.id}</a>
       ${adminLink}
     </div>
   `;
+
+  // Bind related incident clicks
+  body.querySelectorAll(".modal-related").forEach(el => {
+    el.addEventListener("click", () => {
+      const rid = el.dataset.id;
+      const related = _allIncidentsCache.find(i => i.id === rid);
+      if (related) openModal(related);
+    });
+  });
 
   $("#incident-modal-overlay").style.display = "flex";
   document.body.style.overflow = "hidden";
