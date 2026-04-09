@@ -169,9 +169,12 @@ html, body {
 /* ---- Viz grid ---- */
 .viz-grid {
   display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; margin-top: 1rem;
+  align-items: stretch;
 }
+.viz-grid > .card { display: flex; flex-direction: column; }
+.viz-grid > .card > div:last-child { flex: 1; }
 @media (max-width: 900px) { .viz-grid { grid-template-columns: 1fr; } }
-.viz-volume #volume-chart { padding: .75rem; min-height: 360px; }
+.viz-volume #volume-chart { padding: .75rem; min-height: 300px; flex: 1; }
 
 /* ---- Entity controls ---- */
 .ent-controls {
@@ -222,7 +225,7 @@ html, body {
 #entity-graph svg .node-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; fill: var(--text-muted); pointer-events: none; }
 
 /* ---- Sankey ---- */
-.viz-sankey #sankey-chart { padding: .75rem; min-height: 380px; overflow: hidden; }
+.viz-sankey #sankey-chart { padding: .75rem; min-height: 300px; overflow: hidden; }
 
 /* ---- Map ---- */
 .mapcard { margin-top: 1rem; }
