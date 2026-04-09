@@ -62,6 +62,26 @@ COUNTRY_NAMES = {
     "VN": "Vietnam", "ZA": "South Africa",
 }
 
+# TTP → display parent type (for treemap grouping)
+_TTP_PARENT = {
+    "network intrusion": "Cyber Operations", "DDoS": "Cyber Operations",
+    "data theft": "Cyber Operations", "destructive attack": "Cyber Operations",
+    "supply chain compromise": "Cyber Operations",
+    "sabotage": "Kinetic Operations", "assassination": "Kinetic Operations",
+    "surveillance": "Kinetic Operations", "jamming": "Kinetic Operations",
+    "inauthentic amplification": "Information Operations",
+    "fabricated content": "Information Operations",
+    "hack-and-leak": "Information Operations", "impersonation": "Information Operations",
+    "covert funding": "Malign Finance", "sanctions evasion": "Malign Finance",
+    "corruption": "Malign Finance",
+    "agent recruitment": "Civil Society Subversion",
+    "transnational repression": "Civil Society Subversion",
+    "infiltration": "Civil Society Subversion",
+    "front organization": "Civil Society Subversion",
+    "energy coercion": "Economic Coercion", "trade coercion": "Economic Coercion",
+    "debt leverage": "Economic Coercion",
+}
+
 COUNTRY_CENTROIDS = {
     "Albania": {"lat": 41.15, "lon": 20.17}, "Austria": {"lat": 47.52, "lon": 14.55},
     "Australia": {"lat": -25.27, "lon": 133.78}, "Bosnia and Herzegovina": {"lat": 43.92, "lon": 17.68},
@@ -355,13 +375,14 @@ def api_incidents():
     stacked_rows = [{"tool": t, "actor": a, "count": c}
                     for t, bucket in tba.items() for a, c in bucket.items()]
 
-    # --- TTPs x actor, grouped by incident type ---
+    # --- TTPs x actor, grouped by incident type (TTPs only under their parent type) ---
     ttp_by_type = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     for inc in filtered:
-        for tool in (inc["tools"] or []):
-            for ttp in (inc.get("ttps") or []):
+        for ttp in (inc.get("ttps") or []):
+            parent = _TTP_PARENT.get(ttp)
+            if parent:
                 for a in (inc["actors"] or ["Unknown"]):
-                    ttp_by_type[tool][ttp][a] += 1
+                    ttp_by_type[parent][ttp][a] += 1
     ttp_rows = {}
     for tool, ttps in ttp_by_type.items():
         ttp_rows[tool] = [{"ttp": ttp, "actor": a, "count": c}
