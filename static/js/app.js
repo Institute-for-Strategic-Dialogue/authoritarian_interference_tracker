@@ -1020,13 +1020,14 @@ function renderTtpTreemap(ttpByType) {
 
   const container = el.node();
   const width = container.clientWidth || 800;
-  const height = 120;
+  const height = 220;
 
   const root = d3.hierarchy({ name: "root", children })
     .sum(d => d.value || 0)
     .sort((a, b) => b.value - a.value);
 
-  d3.treemap().size([width, height]).padding(1).paddingTop(14).round(true)(root);
+  // tile.slice favors wide rectangles (easier to read labels)
+  d3.treemap().tile(d3.treemapSlice).size([width, height]).padding(2).paddingTop(16).round(true)(root);
 
   const svg = el.append("svg").attr("width", width).attr("height", height);
 
@@ -1039,11 +1040,15 @@ function renderTtpTreemap(ttpByType) {
   typeGroups.append("rect")
     .attr("x", d => d.x0).attr("y", d => d.y0)
     .attr("width", d => d.x1 - d.x0).attr("height", d => d.y1 - d.y0)
-    .attr("fill", "none").attr("stroke", "rgba(0,0,0,.08)").attr("rx", 3);
+    .attr("fill", d => {
+      const tc = toolColor(d.data.name);
+      return tc ? blendToBase(tc, 0.06) : "rgba(0,0,0,.02)";
+    })
+    .attr("stroke", "rgba(0,0,0,.08)").attr("rx", 3);
 
   // Type label
   typeGroups.append("text")
-    .attr("x", d => d.x0 + 4).attr("y", d => d.y0 + 10)
+    .attr("x", d => d.x0 + 4).attr("y", d => d.y0 + 11)
     .style("font-size", "9px").style("fill", "#999").style("font-weight", "600")
     .style("font-family", "'Space Mono', monospace").style("text-transform", "uppercase")
     .text(d => d.data.name.replace(/_/g, " "));
@@ -1051,7 +1056,7 @@ function renderTtpTreemap(ttpByType) {
   // TTP leaves
   const leaves = svg.selectAll("g.leaf")
     .data(root.leaves())
-    .join("g").attr("class", "leaf");
+    .join("g").attr("class", "leaf").style("cursor", "pointer");
 
   leaves.append("rect")
     .attr("x", d => d.x0).attr("y", d => d.y0)
@@ -1060,25 +1065,37 @@ function renderTtpTreemap(ttpByType) {
       const tc = toolColor(d.parent.data.name);
       return tc ? blendToBase(tc, 0.25) : "rgba(0,0,0,.06)";
     })
-    .attr("rx", 2)
-    .style("cursor", "pointer")
-    .on("click", (e, d) => {
-      // Could filter by TTP in the future
-    });
+    .attr("rx", 2);
 
   leaves.append("text")
-    .attr("x", d => d.x0 + 3).attr("y", d => d.y0 + (d.y1 - d.y0) / 2 + 3)
-    .style("font-size", d => (d.x1 - d.x0) < 50 ? "0" : "9px")
+    .attr("x", d => d.x0 + 4).attr("y", d => d.y0 + (d.y1 - d.y0) / 2 + 4)
+    .style("font-size", d => (d.x1 - d.x0) < 60 ? "0" : "11px")
     .style("fill", "#5C6771").style("font-weight", "500")
     .style("font-family", "'IBM Plex Sans', sans-serif")
     .text(d => {
       const w = d.x1 - d.x0;
-      if (w < 50) return "";
+      if (w < 60) return "";
       const label = `${d.data.name} (${d.data.value})`;
-      return w < 90 ? d.data.name : label;
+      return w < 100 ? d.data.name : label;
     });
 
-  leaves.append("title").text(d => `${d.parent.data.name} > ${d.data.name}: ${d.data.value}`);
+  leaves.append("title").text(d => `${d.parent.data.name} \u203a ${d.data.name}: ${d.data.value}`);
+
+  // Click: filter incidents by search (TTP name)
+  leaves.on("click", (e, d) => {
+    const ttpName = d.data.name;
+    state.filters.q = ttpName;
+    $("#search").value = ttpName;
+    state.page = 1;
+    refresh();
+  });
+
+  // Hover
+  leaves.on("mouseenter", function(e, d) {
+    d3.select(this).select("rect").attr("stroke", "#333").attr("stroke-width", 1.5);
+  }).on("mouseleave", function() {
+    d3.select(this).select("rect").attr("stroke", null).attr("stroke-width", null);
+  });
 }
 
 // ========================================================================
