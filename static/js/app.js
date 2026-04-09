@@ -400,25 +400,34 @@ function renderVolumeChart(rows) {
   }
 
   const container = document.querySelector(".viz-volume");
-  const width = Math.min(620, container.clientWidth - 32);
-  const height = 280;
-  const margin = { top: 20, right: 20, bottom: 35, left: 45 };
+  const width = Math.min(500, container.clientWidth - 32);
+  const height = 360;
+  const margin = { top: 20, right: 16, bottom: 35, left: 40 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
 
   const svg = el.append("svg").attr("width", width).attr("height", height);
   const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Pivot data: year -> actor -> count (exclude future years)
-  const years = Array.from(new Set(rows.map(d => d.year))).filter(y => y <= CURRENT_YEAR).sort((a, b) => a - b);
+  // Pivot data: consolidate pre-2014 into "<2014"
+  const rawYears = Array.from(new Set(rows.map(d => d.year))).filter(y => y <= CURRENT_YEAR).sort((a, b) => a - b);
   const actors = Array.from(new Set(rows.map(d => d.actor))).sort();
   const lookup = {};
-  rows.forEach(r => { lookup[`${r.year}_${r.actor}`] = r.count; });
+  rows.forEach(r => {
+    const key = r.year < 2014 ? `pre_${r.actor}` : `${r.year}_${r.actor}`;
+    lookup[key] = (lookup[key] || 0) + r.count;
+  });
+
+  const hasPre = rawYears.some(y => y < 2014);
+  const postYears = rawYears.filter(y => y >= 2014);
+  const years = hasPre ? ["<2014", ...postYears] : [...postYears];
 
   // Build stack data
   const stackData = years.map(yr => {
     const obj = { year: yr };
-    actors.forEach(a => { obj[a] = lookup[`${yr}_${a}`] || 0; });
+    actors.forEach(a => {
+      obj[a] = yr === "<2014" ? (lookup[`pre_${a}`] || 0) : (lookup[`${yr}_${a}`] || 0);
+    });
     return obj;
   });
 
@@ -460,15 +469,32 @@ function renderVolumeChart(rows) {
       .attr("rx", 1)
       .on("click", (_, d) => {
         toggleSet(state.filters.actors, actorName);
-        state.filters.start = d.data.year;
-        state.filters.end = d.data.year;
-        $("#start-year").value = d.data.year;
-        $("#end-year").value = d.data.year;
+        if (d.data.year === "<2014") {
+          state.filters.start = null;
+          state.filters.end = 2013;
+          $("#start-year").value = "";
+          $("#end-year").value = 2013;
+        } else {
+          state.filters.start = d.data.year;
+          state.filters.end = d.data.year;
+          $("#start-year").value = d.data.year;
+          $("#end-year").value = d.data.year;
+        }
         state.page = 1;
         refresh();
       })
       .append("title").text(d => `${actorName} ${d.data.year}: ${d.data[actorName]}`);
   });
+
+  // Visual break between pre-2014 and 2014+
+  if (hasPre && years.length > 1) {
+    const breakX = x("<2014") + x.bandwidth() + x.step() * 0.075;
+    g.append("line")
+      .attr("x1", breakX).attr("x2", breakX)
+      .attr("y1", -4).attr("y2", innerH + 4)
+      .attr("stroke", "#bbb").attr("stroke-width", 1)
+      .attr("stroke-dasharray", "3,3");
+  }
 
   // Legend — pill style
   const legend = svg.append("g").attr("transform", `translate(${margin.left + 8}, 4)`);
@@ -1025,7 +1051,7 @@ function renderTtpTreemap(ttpByType) {
 
   const container = el.node();
   const width = container.clientWidth || 800;
-  const height = 220;
+  const height = 160;
 
   const root = d3.hierarchy({ name: "root", children })
     .sum(d => d.value || 0)

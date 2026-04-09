@@ -87,16 +87,16 @@
 
   <main class="container">
 
-    <!-- 3. Visualization grid (2 columns) -->
+    <!-- 3. Visualization grid: volume (1/3) + sankey (2/3) -->
     <div class="viz-grid">
       <section class="card viz-volume">
-        <div class="card-title">VOLUME OVER TIME <span class="sub">stacked by threat actor</span></div>
+        <div class="card-title">VOLUME OVER TIME <span class="sub">by threat actor</span></div>
         <div id="volume-chart"></div>
       </section>
 
-      <section class="card stacked-section">
-        <div class="card-title">INCIDENT TYPES <span class="sub">by Threat Actor</span></div>
-        <div id="stackedbar"></div>
+      <section class="card viz-sankey">
+        <div class="card-title">INCIDENT FLOW <span class="sub">type &rarr; actor &rarr; target country</span></div>
+        <div id="sankey-chart"></div>
       </section>
     </div>
 
@@ -106,16 +106,13 @@
       <div id="ttp-treemap"></div>
     </section>
 
+    <!-- Stacked bar (hidden, keeps rendering for data) -->
+    <div style="display:none;"><div class="stacked-section"><div id="stackedbar"></div></div></div>
+
     <!-- 4. Map (full width) -->
     <section class="card mapcard">
       <div class="card-title">GLOBAL DISTRIBUTION <span class="sub">by actor share</span></div>
       <div id="map"></div>
-    </section>
-
-    <!-- 5. Sankey (full width) — Incident Type → Actor → Country -->
-    <section class="card viz-sankey">
-      <div class="card-title">INCIDENT FLOW <span class="sub">type &rarr; actor &rarr; target country</span></div>
-      <div id="sankey-chart"></div>
     </section>
 
     <!-- 6. Entity network + table -->

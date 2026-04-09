@@ -41,7 +41,7 @@ html, body {
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
 }
 
-.container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+.container { max-width: 1440px; margin: 0 auto; padding: 0 1rem; }
 
 /* ---- Header ---- */
 .page-header { padding-top: 1.25rem; padding-bottom: 0.5rem; }
@@ -143,10 +143,10 @@ html, body {
 
 /* ---- Viz grid ---- */
 .viz-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;
+  display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; margin-top: 1rem;
 }
 @media (max-width: 900px) { .viz-grid { grid-template-columns: 1fr; } }
-.viz-volume #volume-chart { padding: .75rem; min-height: 300px; }
+.viz-volume #volume-chart { padding: .75rem; min-height: 360px; }
 
 /* ---- Entity controls ---- */
 .ent-controls {
@@ -196,9 +196,8 @@ html, body {
 .entity-tbl .ent-type { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; background: rgba(0,0,0,.05); color: var(--text-muted); }
 #entity-graph svg .node-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; fill: var(--text-muted); pointer-events: none; }
 
-/* ---- Sankey (full width) ---- */
-.viz-sankey { margin-top: 1rem; }
-.viz-sankey #sankey-chart { padding: .75rem; min-height: 540px; overflow: hidden; }
+/* ---- Sankey ---- */
+.viz-sankey #sankey-chart { padding: .75rem; min-height: 380px; overflow: hidden; }
 
 /* ---- Map ---- */
 .mapcard { margin-top: 1rem; }
