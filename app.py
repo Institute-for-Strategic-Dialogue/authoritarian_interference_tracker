@@ -256,6 +256,9 @@ def _filter_incidents(incidents, filters):
             inc_entity_names = {e.get("normalized_name", e.get("name", "")).lower() for e in (inc.get("entities") or [])}
             if not any(en.lower() in inc_entity_names for en in filters["entities"]):
                 continue
+        if filters.get("ttp"):
+            if filters["ttp"].lower() not in [t.lower() for t in (inc.get("ttps") or [])]:
+                continue
         if filters.get("actors"):
             if not set(inc["actors"]).intersection(filters["actors"]):
                 continue
@@ -346,6 +349,7 @@ def api_incidents():
         "countries": parse_multi("countries"),
         "tools": parse_multi("tools"),
         "entities": parse_multi("entities"),
+        "ttp": request.args.get("ttp", "").strip() or None,
         "q": request.args.get("q", "").strip() or None,
         "region": request.args.get("region", "").strip() or None,
     }
@@ -496,6 +500,7 @@ def _parse_export_filters():
         "start": int(s) if s else None, "end": int(e) if e else None,
         "actors": pm("actors"), "countries": pm("countries"),
         "tools": pm("tools"), "entities": pm("entities"),
+        "ttp": request.args.get("ttp", "").strip() or None,
         "q": request.args.get("q", "").strip() or None,
         "region": request.args.get("region", "").strip() or None,
     }

@@ -21,6 +21,7 @@ const state = {
     countries: new Set(),
     tools: new Set(),
     entities: new Set(),
+    ttp: "",
     region: ""
   }
 };
@@ -110,6 +111,7 @@ async function init() {
   if (urlParams.get("countries")) { urlParams.get("countries").split(",").forEach(c => state.filters.countries.add(c)); }
   if (urlParams.get("tools")) { urlParams.get("tools").split(",").forEach(t => state.filters.tools.add(t)); }
   if (urlParams.get("entities")) { urlParams.get("entities").split(",").forEach(e => state.filters.entities.add(e)); }
+  if (urlParams.get("ttp")) { state.filters.ttp = urlParams.get("ttp"); }
   if (urlParams.get("region")) { state.filters.region = urlParams.get("region"); }
 
   buildFilterUI();
@@ -292,6 +294,7 @@ function currentParams() {
   if (state.filters.countries.size) p.set("countries", Array.from(state.filters.countries).join(","));
   if (state.filters.tools.size) p.set("tools", Array.from(state.filters.tools).join(","));
   if (state.filters.entities.size) p.set("entities", Array.from(state.filters.entities).join(","));
+  if (state.filters.ttp) p.set("ttp", state.filters.ttp);
   if (state.filters.region) p.set("region", state.filters.region);
   p.set("page", state.page);
   p.set("page_size", state.pageSize);
@@ -360,6 +363,7 @@ function renderApplied() {
   state.filters.actors.forEach(v => chip("Actor", v, () => state.filters.actors.delete(v)));
   state.filters.countries.forEach(v => chip("Country", v, () => { state.filters.countries.delete(v); $("#country-select").value = ""; }));
   state.filters.entities.forEach(v => chip("Entity", v, () => { state.filters.entities.delete(v); selectedEntities.delete(v); }));
+  if (state.filters.ttp) chip("TTP", state.filters.ttp, () => { state.filters.ttp = ""; });
   if (state.filters.region) chip("Region", state.filters.region, () => { state.filters.region = ""; $("#region-select").value = ""; });
   if (state.filters.start) chip("From", state.filters.start, () => { state.filters.start = null; $("#start-year").value = ""; });
   if (state.filters.end) chip("To", state.filters.end, () => { state.filters.end = null; $("#end-year").value = ""; });
@@ -374,6 +378,7 @@ function clearAll() {
   state.filters.tools.clear();
   state.filters.entities.clear();
   selectedEntities.clear();
+  state.filters.ttp = "";
   state.filters.region = ""; $("#region-select").value = "";
   state.filters.start = null; $("#start-year").value = "";
   state.filters.end = null; $("#end-year").value = "";
@@ -1080,11 +1085,9 @@ function renderTtpTreemap(ttpByType) {
 
   leaves.append("title").text(d => `${d.parent.data.name} \u203a ${d.data.name}: ${d.data.value}`);
 
-  // Click: filter incidents by search (TTP name)
+  // Click: filter incidents by TTP
   leaves.on("click", (e, d) => {
-    const ttpName = d.data.name;
-    state.filters.q = ttpName;
-    $("#search").value = ttpName;
+    state.filters.ttp = state.filters.ttp === d.data.name ? "" : d.data.name;
     state.page = 1;
     refresh();
   });
@@ -1377,6 +1380,7 @@ function buildFilterURL() {
   if (state.filters.countries.size) p.set("countries", Array.from(state.filters.countries).join(","));
   if (state.filters.tools.size) p.set("tools", Array.from(state.filters.tools).join(","));
   if (state.filters.entities.size) p.set("entities", Array.from(state.filters.entities).join(","));
+  if (state.filters.ttp) p.set("ttp", state.filters.ttp);
   if (state.filters.region) p.set("region", state.filters.region);
   const qs = p.toString();
   return qs ? `/?${qs}` : "/";
