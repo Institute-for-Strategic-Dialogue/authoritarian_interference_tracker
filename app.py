@@ -355,6 +355,18 @@ def api_incidents():
     stacked_rows = [{"tool": t, "actor": a, "count": c}
                     for t, bucket in tba.items() for a, c in bucket.items()]
 
+    # --- TTPs x actor, grouped by incident type ---
+    ttp_by_type = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    for inc in filtered:
+        for tool in (inc["tools"] or []):
+            for ttp in (inc.get("ttps") or []):
+                for a in (inc["actors"] or ["Unknown"]):
+                    ttp_by_type[tool][ttp][a] += 1
+    ttp_rows = {}
+    for tool, ttps in ttp_by_type.items():
+        ttp_rows[tool] = [{"ttp": ttp, "actor": a, "count": c}
+                          for ttp, actors in ttps.items() for a, c in actors.items()]
+
     # --- Country x actor (for map) ---
     cxa = defaultdict(lambda: defaultdict(int))
     for inc in filtered:
@@ -376,6 +388,7 @@ def api_incidents():
         "incidents": page_items,
         "volume_over_time": volume_rows,
         "stacked": stacked_rows,
+        "ttp_by_type": ttp_rows,
         "country_actor": country_rows,
         "country_meta": COUNTRY_CENTROIDS,
     })
