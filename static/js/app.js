@@ -1062,19 +1062,24 @@ function renderTtpTreemap(ttpByType) {
     .data(root.leaves())
     .join("g").attr("class", "leaf").style("cursor", "pointer");
 
+  const activeTtp = state.filters.ttp;
+
   leaves.append("rect")
     .attr("x", d => d.x0).attr("y", d => d.y0)
     .attr("width", d => Math.max(0, d.x1 - d.x0)).attr("height", d => Math.max(0, d.y1 - d.y0))
     .attr("fill", d => {
       const tc = toolColor(d.parent.data.name);
-      return tc ? blendToBase(tc, 0.25) : "rgba(0,0,0,.06)";
+      return tc ? blendToBase(tc, d.data.name === activeTtp ? 0.5 : 0.25) : "rgba(0,0,0,.06)";
     })
+    .attr("stroke", d => d.data.name === activeTtp ? "#333" : null)
+    .attr("stroke-width", d => d.data.name === activeTtp ? 2 : 0)
     .attr("rx", 2);
 
   leaves.append("text")
     .attr("x", d => d.x0 + 4).attr("y", d => d.y0 + (d.y1 - d.y0) / 2 + 4)
     .style("font-size", d => (d.x1 - d.x0) < 60 ? "0" : "11px")
-    .style("fill", "#5C6771").style("font-weight", "500")
+    .style("fill", d => d.data.name === activeTtp ? "#222" : "#5C6771")
+    .style("font-weight", d => d.data.name === activeTtp ? "700" : "500")
     .style("font-family", "'IBM Plex Sans', sans-serif")
     .text(d => {
       const w = d.x1 - d.x0;
