@@ -40,46 +40,50 @@
   <!-- 2. Filter bar (sticky) -->
   <div class="filter-bar-wrap">
     <div class="filter-bar container">
-      <!-- Search -->
+      <!-- Search row (always visible) -->
       <div class="filter-row filter-row--search">
         <input id="search" type="text" placeholder="Search incidents..." autocomplete="off" />
+        <button id="filter-toggle" class="filter-toggle" aria-label="Toggle filters">&#9660;</button>
       </div>
 
-      <!-- Incident type pills -->
-      <div class="filter-row">
-        <label class="filter-label">Incident Type</label>
-        <div id="tool-pills" class="pill-group"></div>
-      </div>
+      <!-- Collapsible filters -->
+      <div id="filter-collapsible" class="filter-collapsible">
+        <!-- Incident type pills -->
+        <div class="filter-row">
+          <label class="filter-label">Incident Type</label>
+          <div id="tool-pills" class="pill-group"></div>
+        </div>
 
-      <!-- Threat actor pills -->
-      <div class="filter-row">
-        <label class="filter-label">Threat Actor</label>
-        <div id="actor-pills" class="pill-group"></div>
-      </div>
+        <!-- Threat actor pills -->
+        <div class="filter-row">
+          <label class="filter-label">Threat Actor</label>
+          <div id="actor-pills" class="pill-group"></div>
+        </div>
 
-      <!-- Target country + Region + Years + actions -->
-      <div class="filter-row filter-row--selects">
-        <div class="filter-field filter-field--inline">
-          <label class="filter-label" for="country-select">Country</label>
-          <select id="country-select"><option value="">All countries</option></select>
-        </div>
-        <div class="filter-field filter-field--inline">
-          <label class="filter-label" for="region-select">Region</label>
-          <select id="region-select"><option value="">All regions</option></select>
-        </div>
-        <div class="filter-field filter-field--inline">
-          <label class="filter-label" for="start-year">Start</label>
-          <input id="start-year" type="number" min="2014" max="2026" placeholder="2014" />
-        </div>
-        <div class="filter-field filter-field--inline">
-          <label class="filter-label" for="end-year">End</label>
-          <input id="end-year" type="number" min="2014" max="2026" placeholder="2026" />
-        </div>
-        <div id="applied" class="applied"></div>
-        <div class="filter-actions">
-          <button id="clearAll" class="btn-clear">Clear All</button>
-<a id="export-csv" href="/export/incidents.csv" class="btn-export" title="Export filtered incidents as CSV">&#11123; CSV</a>
-          <a id="export-xlsx" href="/export/incidents.xlsx" class="btn-export" title="Export filtered incidents as Excel">&#11123; XLSX</a>
+        <!-- Target country + Region + Years + actions -->
+        <div class="filter-row filter-row--selects">
+          <div class="filter-field filter-field--inline">
+            <label class="filter-label" for="country-select">Country</label>
+            <select id="country-select"><option value="">All countries</option></select>
+          </div>
+          <div class="filter-field filter-field--inline">
+            <label class="filter-label" for="region-select">Region</label>
+            <select id="region-select"><option value="">All regions</option></select>
+          </div>
+          <div class="filter-field filter-field--inline">
+            <label class="filter-label" for="start-year">Start</label>
+            <input id="start-year" type="number" min="2014" max="2026" placeholder="2014" />
+          </div>
+          <div class="filter-field filter-field--inline">
+            <label class="filter-label" for="end-year">End</label>
+            <input id="end-year" type="number" min="2014" max="2026" placeholder="2026" />
+          </div>
+          <div id="applied" class="applied"></div>
+          <div class="filter-actions">
+            <button id="clearAll" class="btn-clear">Clear All</button>
+            <a id="export-csv" href="/export/incidents.csv" class="btn-export" title="Export filtered incidents as CSV">&#11123; CSV</a>
+            <a id="export-xlsx" href="/export/incidents.xlsx" class="btn-export" title="Export filtered incidents as Excel">&#11123; XLSX</a>
+          </div>
         </div>
       </div>
     </div>

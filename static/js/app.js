@@ -224,6 +224,28 @@ function updatePillStates() {
 }
 
 function bindEvents() {
+  // Filter toggle
+  const toggleBtn = $("#filter-toggle");
+  const collapsible = $("#filter-collapsible");
+  if (toggleBtn && collapsible) {
+    const isMobile = window.innerWidth <= 900;
+    // Mobile: start collapsed. Desktop: start expanded.
+    if (isMobile) {
+      collapsible.classList.add("collapsed");
+      toggleBtn.classList.add("collapsed");
+    }
+    toggleBtn.addEventListener("click", () => {
+      const isCollapsed = collapsible.classList.contains("collapsed") || collapsible.classList.contains("expanded") === false && isMobile;
+      if (window.innerWidth <= 900) {
+        collapsible.classList.toggle("expanded");
+        toggleBtn.classList.toggle("expanded");
+      } else {
+        collapsible.classList.toggle("collapsed");
+        toggleBtn.classList.toggle("collapsed");
+      }
+    });
+  }
+
   // Search (debounced)
   $("#search").addEventListener("input", (e) => {
     state.filters.q = e.target.value.trim();

@@ -69,12 +69,37 @@ html, body {
 .filter-bar { display: flex; flex-direction: column; gap: .5rem; }
 .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 
+.filter-row--search { position: relative; }
 .filter-row--search #search {
-  width: 100%; padding: .4rem .9rem;
+  width: 100%; padding: .4rem 2.5rem .4rem .9rem;
   border: 1px solid #ddd; border-radius: .5rem; background: white;
   font-size: .9rem; outline: none; transition: border-color 200ms;
 }
 .filter-row--search #search:focus { border-color: var(--primary-color); }
+
+.filter-toggle {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; color: var(--text-muted); padding: 4px 8px;
+  transition: transform 200ms;
+}
+.filter-toggle.collapsed { transform: translateY(-50%) rotate(-90deg); }
+
+.filter-collapsible {
+  display: flex; flex-direction: column; gap: .5rem;
+  overflow: hidden; transition: max-height 300ms ease, opacity 200ms ease;
+  max-height: 500px; opacity: 1;
+}
+.filter-collapsible.collapsed {
+  max-height: 0; opacity: 0; pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .filter-collapsible { max-height: 0; opacity: 0; pointer-events: none; }
+  .filter-collapsible.expanded { max-height: 500px; opacity: 1; pointer-events: auto; }
+  .filter-toggle { transform: translateY(-50%) rotate(-90deg); }
+  .filter-toggle.expanded { transform: translateY(-50%) rotate(0deg); }
+}
 
 .filter-label {
   font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .08em;
