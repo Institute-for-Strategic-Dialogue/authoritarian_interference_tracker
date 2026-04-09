@@ -410,12 +410,6 @@ def sitemap():
     return Response("\n".join(xml), mimetype="application/xml")
 
 
-@app.route("/network")
-def network():
-    """Entity network graph page."""
-    return render_template("network.html", is_admin=session.get("admin", False))
-
-
 @app.route("/api/entities/network")
 def api_entity_network():
     """Proxy to incident-manager entity network endpoint."""
