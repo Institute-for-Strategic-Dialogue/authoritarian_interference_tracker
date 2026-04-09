@@ -1364,7 +1364,7 @@ function openModal(inc) {
       })
       .filter(o => o.overlap > 0)
       .sort((a, b) => b.overlap - a.overlap)
-      .slice(0, 5);
+      .slice(0, 3);
   }
 
   const confPct = inc.confidence_score != null ? Math.round(inc.confidence_score * 100) : null;
