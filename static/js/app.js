@@ -1117,6 +1117,11 @@ function renderList(incidents) {
       `<span class="tag tag-tool pill-tag" data-v="${t}" style="background:${blendToBase(toolColor(t), 0.12)};border-color:${toolColor(t)};color:#5C6771">${t}</span>`
     ).join("");
 
+    // TTP pills
+    const ttpPills = (inc.ttps || []).map(t =>
+      `<span class="tag tag-ttp">${t}</span>`
+    ).join("");
+
     // Source links — float right
     const sourceTags = (inc.source_urls || []).slice(0, 3).map(s => {
       const domain = extractDomain(s);
@@ -1149,7 +1154,7 @@ function renderList(incidents) {
           ${actorPills}${actorPills && countryPills ? sep : ""}${countryPills}${(actorPills || countryPills) && toolPills ? typeSep : ""}${toolPills}
         </div>
         <div class="tags tags-right">
-          ${sourceTags}${moreSourcesLabel}
+          ${ttpPills}${ttpPills && sourceTags ? '<span class="tag-sep">|</span>' : ''}${sourceTags}${moreSourcesLabel}
         </div>
       </div>
     `;
