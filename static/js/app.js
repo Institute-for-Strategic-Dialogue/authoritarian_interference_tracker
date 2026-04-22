@@ -422,7 +422,7 @@ function renderVolumeChart(rows) {
   }
 
   const container = document.querySelector(".viz-volume");
-  const width = Math.min(500, container.clientWidth - 32);
+  const width = Math.max(300, Math.min(500, container.clientWidth - 32));
   const height = Math.max(300, container.clientHeight - 40);
   const margin = { top: 20, right: 16, bottom: 35, left: 40 };
   const innerW = width - margin.left - margin.right;
@@ -549,7 +549,7 @@ function renderSankey(countryRows, stackedRows) {
   }
 
   const container = document.querySelector(".viz-sankey");
-  const width = Math.min(1200, container.clientWidth - 32);
+  const width = Math.max(400, Math.min(1200, container.clientWidth - 32));
   const height = 380;
   const margin = { top: 10, right: 16, bottom: 10, left: 16 };
   const innerW = width - margin.left - margin.right;
@@ -719,7 +719,7 @@ function renderSankey(countryRows, stackedRows) {
   node.append("rect")
     .attr("x", d => d.x0)
     .attr("y", d => d.y0)
-    .attr("width", d => d.x1 - d.x0)
+    .attr("width", d => Math.max(0, d.x1 - d.x0))
     .attr("height", d => Math.max(1, d.y1 - d.y0))
     .attr("fill", d => {
       const c = d.column === "actor" ? actorColor(d.name)
@@ -1021,7 +1021,7 @@ function renderStacked(rows) {
   const seriesData = tools.map(t => ({ tool: t, ...nested.get(t) }));
 
   const container = document.querySelector(".stacked-section");
-  const width = Math.min(1200, container.clientWidth - 32);
+  const width = Math.max(400, Math.min(1200, container.clientWidth - 32));
   const height = Math.max(200, tools.length * 32 + 60);
 
   const svg = el.append("svg").attr("width", width).attr("height", height);
@@ -1061,7 +1061,7 @@ function renderStacked(rows) {
     actors.forEach(actor => {
       const value = (seriesData.find(s => s.tool === tool)?.[actor]) || 0;
       if (!value) return;
-      const barW = x(value) - x(0);
+      const barW = Math.max(0, x(value) - x(0));
       svg.append("rect")
         .attr("class", "sb-seg")
         .attr("x", x0).attr("y", y(tool))
