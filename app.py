@@ -450,9 +450,39 @@ def sitemap():
 
 @app.route("/api/entities/network")
 def api_entity_network():
-    """Proxy to incident-manager entity network endpoint."""
+    """Proxy to incident-manager entity network endpoint, forwarding filters.
+
+    Display names (e.g. "Russia", "United States", "Cyber Operations") come in
+    on the query string and must be converted back to the storage keys
+    ("russia", "US", "cyber_operations") that the incident-manager indexes on.
+    """
+    def parse_multi(name):
+        v = request.args.get(name, "").strip()
+        return [s.strip() for s in v.split(",") if s.strip()] if v else []
+
+    # Reverse lookup: display name -> storage key
+    actor_key = {v: k for k, v in ACTOR_DISPLAY.items()}
+    country_key = {v: k for k, v in COUNTRY_NAMES.items()}
+    tool_key = {v: k for k, v in TOOL_DISPLAY.items()}
+
+    threat_actors = [actor_key.get(a, a.lower()) for a in parse_multi("actors")]
+    target_countries = [country_key.get(c, c) for c in parse_multi("countries")]
+    incident_types = [tool_key.get(t, t.lower().replace(" ", "_")) for t in parse_multi("tools")]
+
+    params: list[tuple[str, str]] = [("status", "approved")]
+    for a in threat_actors:
+        params.append(("threat_actors", a))
+    for c in target_countries:
+        params.append(("target_countries", c))
+    for t in incident_types:
+        params.append(("incident_types", t))
+    if request.args.get("start"):
+        params.append(("start_year", request.args.get("start")))
+    if request.args.get("end"):
+        params.append(("end_year", request.args.get("end")))
+
     try:
-        resp = _http_client.get(f"{IM_URL}/entities/network", params={"status": "approved"})
+        resp = _http_client.get(f"{IM_URL}/entities/network", params=params)
         resp.raise_for_status()
         return jsonify(resp.json())
     except Exception as e:
