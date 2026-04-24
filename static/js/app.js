@@ -345,7 +345,7 @@ async function refresh() {
   renderApplied();
   updatePillStates();
   try { renderSankey(data.country_actor || [], data.stacked || []); } catch(e) { console.error("Sankey:", e); }
-  try { renderVolumeChart(data.volume_over_time || []); } catch(e) { console.error("VolumeChart:", e); }
+  try { renderVolumeChart(data.volume_over_time || [], data.year_carryover || []); } catch(e) { console.error("VolumeChart:", e); }
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
   try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
   try { renderTtpTreemap(data.ttp_by_type || {}); } catch(e) { console.error("TtpTreemap:", e); }
@@ -412,7 +412,7 @@ function clearAll() {
 // ========================================================================
 // VOLUME OVER TIME CHART (stacked bar by actor)
 // ========================================================================
-function renderVolumeChart(rows) {
+function renderVolumeChart(rows, carryover = []) {
   const el = d3.select("#volume-chart");
   el.selectAll("*").remove();
 
@@ -507,6 +507,58 @@ function renderVolumeChart(rows) {
       })
       .append("title").text(d => `${actorName} ${d.data.year}: ${d.data[actorName]}`);
   });
+
+  // Carryover ribbons: incidents active in both year N and N+1. Drawn as
+  // thin horizontal bands anchored to each bar's TOP at the stacked height
+  // for that year, fading the color so bars stay the dominant signal.
+  if (carryover && carryover.length) {
+    const carryMap = {};
+    carryover.forEach(d => { carryMap[d.from_year] = d.count; });
+    const maxCount = d3.max(Object.values(carryMap)) || 1;
+    const totalByYear = {};
+    stackData.forEach(d => {
+      totalByYear[d.year] = actors.reduce((acc, a) => acc + (d[a] || 0), 0);
+    });
+    const ribbonMaxPx = 18;
+
+    for (let i = 0; i < years.length - 1; i++) {
+      const yr = years[i], nextYr = years[i + 1];
+      if (yr === "Pre" || typeof yr !== "number") continue;
+      const count = carryMap[yr] || 0;
+      if (count === 0) continue;
+
+      const xLeft = x(yr) + x.bandwidth();
+      const xRight = x(nextYr);
+      // Anchor the ribbon to the bar tops on each side (where the count
+      // tapers to zero), height proportional to carryover magnitude.
+      const leftTopY = y(totalByYear[yr] || 0);
+      const rightTopY = y(totalByYear[nextYr] || 0);
+      const thickness = (count / maxCount) * ribbonMaxPx;
+
+      const path = d3.path();
+      path.moveTo(xLeft, leftTopY);
+      path.bezierCurveTo(
+        (xLeft + xRight) / 2, leftTopY,
+        (xLeft + xRight) / 2, rightTopY,
+        xRight, rightTopY
+      );
+      path.bezierCurveTo(
+        (xLeft + xRight) / 2, rightTopY + thickness,
+        (xLeft + xRight) / 2, leftTopY + thickness,
+        xLeft, leftTopY + thickness
+      );
+      path.closePath();
+
+      g.append("path")
+        .attr("d", path.toString())
+        .attr("fill", "#5C6771")
+        .attr("fill-opacity", 0.18)
+        .attr("stroke", "#5C6771")
+        .attr("stroke-opacity", 0.35)
+        .attr("stroke-width", 0.5)
+        .append("title").text(`${count} incident${count === 1 ? "" : "s"} active in both ${yr} and ${nextYr}`);
+    }
+  }
 
   // Visual break between pre-2014 and 2014+
   if (hasPre && years.length > 1) {

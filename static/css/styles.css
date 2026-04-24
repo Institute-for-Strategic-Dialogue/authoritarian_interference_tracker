@@ -58,6 +58,15 @@ html, body {
   font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .08em;
   display: flex; gap: .5rem; align-items: center; opacity: .9; margin-top: .25rem;
 }
+.meta-bar .meta-sep { opacity: .45; }
+.meta-bar .meta-link {
+  color: inherit; text-decoration: none; border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+}
+.meta-bar .meta-link:hover { opacity: 1; border-bottom-color: var(--accent, #0068B2); }
+.intro-blurb {
+  font-size: 14px; line-height: 1.5; color: #5C6771; margin: .75rem 0 0; max-width: 780px;
+}
 
 /* ---- Filter bar (sticky) ---- */
 .filter-bar-wrap {

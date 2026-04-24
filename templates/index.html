@@ -3,8 +3,22 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Authoritarian Interference Tracker</title>
+  {% set og_title = prefill_incident.title if prefill_incident else "Authoritarian Interference Tracker" %}
+  {% set og_desc = prefill_incident.summary[:200] if prefill_incident and prefill_incident.summary else "A catalog of documented authoritarian interference operations targeting democratic states — cyber, kinetic, information, finance, political, and economic." %}
+  <title>{{ og_title }}</title>
+  <meta name="description" content="{{ og_desc }}">
+  <link rel="canonical" href="{{ request.url }}">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="{{ 'article' if prefill_incident else 'website' }}">
+  <meta property="og:title" content="{{ og_title }}">
+  <meta property="og:description" content="{{ og_desc }}">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:site_name" content="Authoritarian Interference Tracker">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ og_title }}">
+  <meta name="twitter:description" content="{{ og_desc }}">
 
   <!-- Fonts: IBM Plex Sans + Space Mono -->
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -33,7 +47,15 @@
       </div>
       <div class="meta-bar">
         <span id="total-count">0</span> <span>INCIDENTS TRACKED</span>
+        <span class="meta-sep">·</span>
+        <a href="/methodology" class="meta-link">Methodology</a>
       </div>
+      <p class="intro-blurb">
+        A public catalog of authoritarian interference operations targeting
+        democratic states. Each incident records the attributed state actor,
+        operational type, targets, and source reporting. Use filters below to
+        drill into specific campaigns, and click any incident for full detail.
+      </p>
     </div>
   </header>
 

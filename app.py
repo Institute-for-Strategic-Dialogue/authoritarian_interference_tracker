@@ -370,6 +370,20 @@ def api_incidents():
     volume_rows = [{"year": y, "actor": a, "count": c}
                    for y, bucket in sorted(vol.items()) for a, c in bucket.items()]
 
+    # --- Year-to-year carryover (incidents active in BOTH year N and N+1) ---
+    # Feeds the thin ribbon between adjacent bars in the volume chart so
+    # readers can see how much of each year's activity persists into the
+    # next year vs. how much is new-onset.
+    carry = defaultdict(int)
+    for inc in filtered:
+        sy, ey = inc["start_year"], inc["end_year"]
+        if not sy:
+            continue
+        last = ey if ey else datetime.now().year
+        for y in range(sy, last):
+            carry[y] += 1
+    carryover_rows = [{"from_year": y, "count": c} for y, c in sorted(carry.items())]
+
     # --- Stacked bar: tools x actor ---
     tba = defaultdict(lambda: defaultdict(int))
     for inc in filtered:
@@ -412,6 +426,7 @@ def api_incidents():
         "page_size": page_size,
         "incidents": page_items,
         "volume_over_time": volume_rows,
+        "year_carryover": carryover_rows,
         "stacked": stacked_rows,
         "ttp_by_type": ttp_rows,
         "country_actor": country_rows,
@@ -441,11 +456,34 @@ def sitemap():
     xml = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     xml.append(f'  <url><loc>{request.host_url}</loc><priority>1.0</priority></url>')
+    xml.append(f'  <url><loc>{request.host_url}methodology</loc><priority>0.5</priority></url>')
     for inc in incidents:
         slug = inc.get("slug") or inc["id"]
         xml.append(f'  <url><loc>{request.host_url}incident/{slug}</loc></url>')
     xml.append('</urlset>')
     return Response("\n".join(xml), mimetype="application/xml")
+
+
+@app.route("/robots.txt")
+def robots():
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /api/",
+        "Disallow: /ait_admin",
+        f"Sitemap: {request.host_url}sitemap.xml",
+    ]
+    return Response("\n".join(lines) + "\n", mimetype="text/plain")
+
+
+@app.route("/methodology")
+def methodology():
+    return render_template("methodology.html")
+
+
+@app.errorhandler(404)
+def not_found(_err):
+    return render_template("404.html"), 404
 
 
 @app.route("/api/entities/network")

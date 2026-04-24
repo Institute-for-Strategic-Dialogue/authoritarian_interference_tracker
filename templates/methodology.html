@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Methodology · Authoritarian Interference Tracker</title>
+  <meta name="description" content="How the Authoritarian Interference Tracker collects, classifies, and reviews incidents.">
+  <link rel="canonical" href="{{ request.url }}">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css"/>
+  <style>
+    .methodology-body {
+      max-width: 780px; margin: 2rem auto; padding: 0 1.5rem;
+      font-family: 'IBM Plex Sans', sans-serif; color: #2c3e50; line-height: 1.65;
+    }
+    .methodology-body h2 { margin-top: 2.5rem; font-size: 20px; letter-spacing: .02em; }
+    .methodology-body h3 { margin-top: 1.5rem; font-size: 16px; color: #37474F; }
+    .methodology-body p { margin: .75rem 0; }
+    .methodology-body .lede { font-size: 17px; color: #5C6771; border-left: 3px solid #0068B2; padding-left: 1rem; }
+    .methodology-body dl { margin: 1rem 0; }
+    .methodology-body dt { font-weight: 600; margin-top: .75rem; }
+    .methodology-body dd { margin: .15rem 0 0 1rem; color: #5C6771; }
+    .methodology-body code { background: rgba(0,0,0,.04); padding: 1px 6px; border-radius: 3px; font-family: 'Space Mono', monospace; font-size: 13px; }
+    .methodology-body .back-link {
+      display: inline-block; margin-top: 3rem; color: #0068B2; text-decoration: none;
+      border-bottom: 1px solid currentColor; padding-bottom: 1px;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header container">
+    <div class="brand">
+      <div class="brand-row">
+        <h1><a href="/" style="color:inherit; text-decoration:none;">AUTHORITARIAN INTERFERENCE TRACKER</a></h1>
+        <div class="logo-area">
+          <img src="/static/img/isd-logo.png" alt="ISD" class="isd-logo-img">
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="methodology-body">
+    <h2>Methodology</h2>
+    <p class="lede">
+      This catalog tracks documented incidents of foreign authoritarian state
+      interference against democratic states. Each entry aggregates reporting
+      from government statements, security-firm analysis, court documents,
+      and credible journalism into a single structured record.
+    </p>
+
+    <h2>Scope</h2>
+    <p>
+      The tracker focuses on operations attributed to five state actors:
+      Russia, China, Iran, North Korea, and Belarus. An incident qualifies
+      when reporting attributes an operation to one of these state actors
+      and that operation targets a democratic country, its institutions,
+      its citizens abroad, or its infrastructure.
+    </p>
+    <p>
+      We group interference into six operational types:
+    </p>
+    <dl>
+      <dt>Cyber Operations</dt>
+      <dd>Network intrusions, DDoS, data theft, destructive attacks, supply chain compromise.</dd>
+      <dt>Kinetic Operations</dt>
+      <dd>Sabotage, assassination, surveillance, jamming.</dd>
+      <dt>Information Operations</dt>
+      <dd>Inauthentic amplification, fabricated content, hack-and-leak, impersonation.</dd>
+      <dt>Malign Finance</dt>
+      <dd>Covert funding, sanctions evasion, corruption.</dd>
+      <dt>Political &amp; Civic Subversion</dt>
+      <dd>Agent recruitment, transnational repression, infiltration, front organizations.</dd>
+      <dt>Economic Coercion</dt>
+      <dd>Energy coercion, trade coercion, debt leverage.</dd>
+    </dl>
+
+    <h2>Pipeline</h2>
+    <h3>1. Collection</h3>
+    <p>
+      A feed manager polls RSS feeds, Google News queries, the GDELT Global
+      Knowledge Graph, and OCCRP Aleph on rolling intervals. Article bodies
+      are extracted directly from publishers where possible (Google News
+      redirects are unwrapped so the real article is retrieved).
+    </p>
+
+    <h3>2. Classification</h3>
+    <p>
+      Each collected article is classified by an LLM (Claude Haiku) as
+      relevant or irrelevant to the scope above, with a confidence score
+      and initial threat-actor / incident-type labels. Irrelevant articles
+      are retained for a 90-day audit window and then purged.
+    </p>
+
+    <h3>3. Grafting and Generation</h3>
+    <p>
+      Relevant articles pass through a grafting stage: each is compared
+      against existing incidents from the last two weeks, and if a match is
+      confirmed by the LLM it's attached as an additional source on that
+      incident. Articles with no match flow to generation, which clusters
+      them by embedding similarity and creates new incident records via
+      Claude Sonnet. A lightweight post-generation dedup pass merges
+      close duplicates automatically.
+    </p>
+
+    <h3>4. Review</h3>
+    <p>
+      Every generated incident lands in a pending-review queue and is
+      triaged by an analyst before publication. Analysts can approve,
+      defer, reject, or merge incidents. Only incidents in the
+      <code>approved</code> state appear on this public site.
+    </p>
+
+    <h2>Confidence and attribution</h2>
+    <p>
+      Each incident carries a confidence assessment (<code>high</code>,
+      <code>medium</code>, <code>low</code>) reflecting the strength of the
+      attribution evidence at the time of generation. A high confidence
+      mark generally requires a government statement, indictment, or a
+      corroborated security-firm analysis; lower confidence indicates
+      single-source reporting or unresolved attribution.
+    </p>
+    <p>
+      Attribution is recorded at the state level (e.g., <em>russia</em>) rather
+      than at the sub-unit level (e.g., GRU, APT28). Named sub-units and
+      operators surface as <strong>entities</strong> on the incident record instead.
+    </p>
+
+    <h2>Timeline semantics</h2>
+    <p>
+      Incidents show a single year when they began and concluded in the
+      same year. A range ("2022 — 2024") indicates a multi-year campaign.
+      "Ongoing" only appears when no end date has been established — a
+      running disinformation operation, an unresolved sanctions regime,
+      or an active infrastructure compromise. Year-over-year volume
+      charts count each active year for multi-year campaigns, so totals
+      reflect actual sustained activity rather than just new onsets.
+    </p>
+
+    <h2>Caveats</h2>
+    <p>
+      The catalog is a secondary source — every record points back to the
+      primary reporting that informed it. Dates reflect the earliest
+      date mentioned in source reporting and may shift as new information
+      surfaces. Attribution inherits the strength of its primary sources;
+      when governments disagree or reporters dispute a claim, the incident
+      reflects the preponderance of credible reporting and is flagged for
+      review when new conflicting evidence appears.
+    </p>
+    <p>
+      If you believe an incident is mischaracterized or missing, email
+      <a href="mailto:benzonip@gmail.com">benzonip@gmail.com</a>.
+    </p>
+
+    <a class="back-link" href="/">← Back to the tracker</a>
+  </main>
+</body>
+</html>
