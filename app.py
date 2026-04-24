@@ -10,7 +10,7 @@ from io import BytesIO, StringIO
 import httpx
 import pandas as pd
 from flask import (
-    Flask, Response, jsonify, redirect, render_template, request,
+    Flask, Response, abort, jsonify, redirect, render_template, request,
     send_file, session, url_for,
 )
 
@@ -550,6 +550,15 @@ _QUIPS_BY_CODE: dict[int, list[str]] = {
         "Deepfake detection is inconclusive. This page is either missing or isn't.",
         "This URL has been merged into a more favorable narrative.",
     ],
+    418: [  # I'm a Teapot — RFC 2324 respected, incident-themed
+        "I'm a teapot. Short, stout, and state-owned.",
+        "RFC 2324 compliant. Also compliant with three sanctions regimes.",
+        "Don't accept tea from unfamiliar states.",
+        "The samovar has boiled over. Attribution pending.",
+        "No coffee. No code. Just Earl Grey and plausible deniability.",
+        "This endpoint brews only disinformation.",
+        "418 I'm a teapot. FSB I'm a teapot. GRU I'm a teapot. Nothing to see here.",
+    ],
     429: [  # Too Many Requests — information_manipulation / inauthentic amplification
         "Too many requests. The Internet Research Agency used to operate at this pace.",
         "Slow down — you're coordinated-inauthentically-amplifying us.",
@@ -646,11 +655,24 @@ def service_unavailable(_err):
         "We're temporarily offline. Try again shortly.")), 503
 
 
+@app.errorhandler(418)
+def teapot(_err):
+    return render_template("error.html", **_error_context(
+        418, "I'm a Teapot",
+        "The server is a teapot. The request was for coffee. See RFC 2324.")), 418
+
+
 @app.errorhandler(429)
 def too_many(_err):
     return render_template("error.html", **_error_context(
         429, "Too Many Requests",
         "You're requesting pages faster than we're serving them.")), 429
+
+
+# RFC 2324 easter egg — if anyone pokes at /brew-coffee we honor the spec.
+@app.route("/brew-coffee")
+def brew_coffee():
+    abort(418)
 
 
 @app.route("/api/entities/network")
