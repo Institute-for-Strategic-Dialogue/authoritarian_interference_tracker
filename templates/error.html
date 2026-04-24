@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ code }} {{ title }} · Authoritarian Interference Tracker</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css"/>
+  <style>
+    .err-body {
+      max-width: 620px; margin: 5rem auto 4rem; padding: 0 1.5rem; text-align: center;
+      font-family: 'IBM Plex Sans', sans-serif; color: #2c3e50;
+    }
+    .err-code {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(72px, 14vw, 112px);
+      line-height: 1;
+      color: #37474F;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .err-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      letter-spacing: .12em;
+      color: #8a9aa3;
+      text-transform: uppercase;
+      margin: .5rem 0 2rem;
+    }
+    .err-quip {
+      font-size: 20px;
+      line-height: 1.45;
+      color: #2c3e50;
+      font-weight: 600;
+      margin: 0 0 .75rem;
+      font-style: italic;
+    }
+    .err-detail {
+      font-size: 15px;
+      color: #5C6771;
+      margin: 0 0 2.5rem;
+      line-height: 1.55;
+    }
+    .err-links { display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; }
+    .err-links a {
+      color: #0068B2; text-decoration: none;
+      border-bottom: 1px solid currentColor; padding-bottom: 1px;
+      font-size: 14px;
+    }
+    .err-links a:hover { color: #004a80; }
+    .err-footer {
+      margin-top: 3.5rem; font-size: 12px; color: #a0a9af;
+      font-family: 'Space Mono', monospace; letter-spacing: .08em;
+    }
+    .err-header { padding: 1rem 0; border-bottom: 1px solid rgba(0,0,0,.06); }
+    .err-header h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px; letter-spacing: .12em; margin: 0;
+      color: #37474F; text-align: center;
+    }
+    .err-header a { color: inherit; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header class="err-header">
+    <h1><a href="/">AUTHORITARIAN INTERFERENCE TRACKER</a></h1>
+  </header>
+
+  <main class="err-body">
+    <p class="err-code">{{ code }}</p>
+    <p class="err-title">{{ title }}</p>
+    <p class="err-quip">{{ quip }}</p>
+    <p class="err-detail">{{ detail }}</p>
+
+    <div class="err-links">
+      <a href="/">← Back to catalog</a>
+      <a href="/methodology">Methodology</a>
+    </div>
+
+    <p class="err-footer">Attribution pending · refresh for a new excuse</p>
+  </main>
+</body>
+</html>

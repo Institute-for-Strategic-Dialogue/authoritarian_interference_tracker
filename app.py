@@ -1,6 +1,7 @@
 """AIT Public Frontend — fetches from Incident Manager API, serves visualizations."""
 
 import os
+import random
 import time
 from collections import Counter, defaultdict
 from datetime import datetime, date
@@ -481,9 +482,175 @@ def methodology():
     return render_template("methodology.html")
 
 
+# ---------------------------------------------------------------------------
+# Error pages: each HTTP status gets a quip pool themed to the tracker's
+# incident types — 500/502/503 lean cyber_operations (destructive attack,
+# supply chain, DDoS), 429 leans information_manipulation (inauthentic
+# amplification), 403/401 lean civil_society_subversion (transnational
+# repression, agent recruitment), 400 leans fabricated content. Targets are
+# the state-level actors we already track; never victims or bystander countries.
+# ---------------------------------------------------------------------------
+
+_QUIPS_BY_CODE: dict[int, list[str]] = {
+    400: [  # Bad Request — information_manipulation / fabricated content
+        "Your request didn't parse. Most state-media articles don't either.",
+        "Bad request. Try again with less disinformation.",
+        "We can't make sense of this input. Neither could the fact-checkers.",
+        "Invalid payload. Fabricate it more professionally next time.",
+    ],
+    401: [  # Unauthorized — civil_society_subversion / agent recruitment
+        "Authentication required. GRU handlers usually DM openly these days.",
+        "You're not signed in. Surprisingly, the IRGC noticed first.",
+        "Not logged in. Consider pretending to be a LinkedIn recruiter instead.",
+    ],
+    403: [  # Forbidden — civil_society_subversion / transnational repression
+        "Access denied. This is what transnational repression feels like, on a much smaller scale.",
+        "Forbidden. No family members were contacted. Consider yourself lucky.",
+        "You can't see this. Try setting up an unofficial overseas police station.",
+        "Not for you. The Ministry of State Security would be proud.",
+    ],
+    404: [  # Not Found — broad, all six incident types
+        # Russia
+        "Putin probably stole it.",
+        "The GRU denies all knowledge of this URL.",
+        "Fancy Bear says this page is definitely not in anyone's inbox.",
+        "This URL was last seen near an unmarked Telegram channel.",
+        "Nord Stream couldn't find it either.",
+        "Kremlin archives are not publicly accessible. Neither is this page.",
+        "Sandworm insists the page is still intact. It is not.",
+        "This page has gone on a very long, very unfortunate walk.",
+        "Doppelganger cloned it, badly. You got the real one. It's gone.",
+        # China
+        "Xi has decided this page does not exist.",
+        "United Front is working on a more patriotic version.",
+        "APT41 may have moved it to a more convenient C2 server.",
+        "The Great Firewall would like a word about your URL.",
+        "This content is currently attending re-education.",
+        "Ministry of State Security says everything is fine. It usually is.",
+        "Volt Typhoon has opinions about your routing.",
+        # Iran
+        "The IRGC has redirected you to a totally legitimate oil tanker.",
+        "Charming Kitten sent you a LinkedIn request instead.",
+        "This page is being held without comment in a Tehran data center.",
+        "MOIS would love to discuss this URL over a coffee. Here. Now. Alone.",
+        # North Korea
+        "Lazarus Group would like you to install this helpful PDF reader.",
+        "Kim says this is the greatest 404 page ever produced.",
+        "The page was seized as partial payment toward a missile program.",
+        "IT workers in fake Malibu addresses are handling your ticket.",
+        # Belarus
+        "Lukashenko won another election instead of loading this page.",
+        "Try again via Minsk, comrade.",
+        # Actor-neutral
+        "This page has been disappeared. Nothing suspicious.",
+        "The Ministry of Truth is reviewing your request.",
+        "Content last seen crossing a border. It was not smiling.",
+        "This URL has been sanctions-evaded.",
+        "State media insists this page is fine. State media has a track record.",
+        "Deepfake detection is inconclusive. This page is either missing or isn't.",
+        "This URL has been merged into a more favorable narrative.",
+    ],
+    429: [  # Too Many Requests — information_manipulation / inauthentic amplification
+        "Too many requests. The Internet Research Agency used to operate at this pace.",
+        "Slow down — you're coordinated-inauthentically-amplifying us.",
+        "Rate limit exceeded. Even Doppelganger takes breaks.",
+        "That's a lot of traffic from one IP. Are you a troll farm? Be honest.",
+        "Throttled. 50,000 bot accounts are experiencing similar delays.",
+    ],
+    451: [  # Unavailable For Legal Reasons — economic_coercion / sanctions
+        "Unavailable for legal reasons. Also: sanctions.",
+        "Blocked. Consider sending a strongly-worded diplomatic note.",
+        "This content is restricted. Not by us — by treaty.",
+        "OFAC regrets to inform you this page is on the SDN list.",
+    ],
+    500: [  # Internal Server Error — cyber_operations / destructive attack
+        "The backend tripped. APT28 denies involvement.",
+        "Internal server error. Must be Sandworm again.",
+        "We're experiencing technical difficulties. So is Moscow.",
+        "Server outage. Lazarus Group hopes you'll consider paying the ransom.",
+        "Something broke. Probably a supply chain compromise.",
+        "The database is fine. That's also what NotPetya said.",
+        "Our backend is undergoing a brief, totally voluntary retraining.",
+        "The server has asked for asylum. It will be back shortly.",
+        "BlackEnergy regrets any inconvenience.",
+    ],
+    502: [  # Bad Gateway — cyber_operations / supply chain
+        "Upstream didn't respond. SolarWinds flashbacks.",
+        "Bad gateway. Could be a supply chain hiccup. Could be Volt Typhoon. Could be both.",
+        "Our dependency chain is under review. Again.",
+        "A vendor we trusted has let us down. We're shocked. Shocked.",
+    ],
+    503: [  # Service Unavailable — cyber_operations / DDoS
+        "Someone's flooding us with traffic. GRU Unit 74455 sends its regards.",
+        "Service unavailable. 50,000 bots say hi.",
+        "Classic DDoS. Not our first rodeo.",
+        "Volumetric attack suspected. Routing through the waiting room.",
+        "The servers are overwhelmed. So was Estonia in 2007.",
+        "Temporarily down. NoName057(16) is claiming credit on Telegram, as usual.",
+    ],
+}
+
+_FALLBACK_QUIP = "Something went wrong. Authoritarians are rarely involved in minor IT outages. Usually."
+
+
+def _random_quip(code: int) -> str:
+    return random.choice(_QUIPS_BY_CODE.get(code, [_FALLBACK_QUIP]))
+
+
+def _error_context(code: int, title: str, detail: str) -> dict:
+    return {"code": code, "title": title, "detail": detail, "quip": _random_quip(code)}
+
+
+@app.errorhandler(400)
+def bad_request(_err):
+    return render_template("error.html", **_error_context(
+        400, "Bad Request",
+        "The request didn't look like anything we could work with.")), 400
+
+
+@app.errorhandler(403)
+def forbidden(_err):
+    return render_template("error.html", **_error_context(
+        403, "Forbidden",
+        "You don't have access to this resource.")), 403
+
+
 @app.errorhandler(404)
 def not_found(_err):
-    return render_template("404.html"), 404
+    return render_template("error.html", **_error_context(
+        404, "Not Found",
+        "That incident doesn't exist — or it may have been merged into another.")), 404
+
+
+@app.errorhandler(500)
+def server_error(_err):
+    return render_template("error.html", **_error_context(
+        500, "Internal Server Error",
+        "Something on our end broke. We've been notified.")), 500
+
+
+# 502/503 are usually produced by the reverse proxy ahead of Flask, but we
+# register handlers so if anything inside the app raises these codes the
+# themed template renders too.
+@app.errorhandler(502)
+def bad_gateway(_err):
+    return render_template("error.html", **_error_context(
+        502, "Bad Gateway",
+        "Something we depend on isn't responding right now.")), 502
+
+
+@app.errorhandler(503)
+def service_unavailable(_err):
+    return render_template("error.html", **_error_context(
+        503, "Service Unavailable",
+        "We're temporarily offline. Try again shortly.")), 503
+
+
+@app.errorhandler(429)
+def too_many(_err):
+    return render_template("error.html", **_error_context(
+        429, "Too Many Requests",
+        "You're requesting pages faster than we're serving them.")), 429
 
 
 @app.route("/api/entities/network")
