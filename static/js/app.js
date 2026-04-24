@@ -1219,7 +1219,8 @@ function renderList(incidents) {
 
     // Year range display
     const startYr = inc.start_year || "?";
-    const endYr = inc.end_year ? (inc.end_year >= CURRENT_YEAR ? "ongoing" : inc.end_year) : "ongoing";
+    // end_year null = open-ended; a concrete year means we know when it ended.
+    const endYr = inc.end_year || "ongoing";
     const yearRange = startYr === endYr ? `${startYr}` : `${startYr} \u2014 ${endYr}`;
 
     // Actor pills
@@ -1321,7 +1322,8 @@ function openModal(inc) {
   const body = $("#modal-body");
 
   const startYr = inc.start_year || "?";
-  const endYr = inc.end_year ? (inc.end_year >= CURRENT_YEAR ? "ongoing" : inc.end_year) : "ongoing";
+  // end_year null = open-ended; a concrete year means we know when it ended.
+    const endYr = inc.end_year || "ongoing";
   const yearRange = startYr === endYr ? `${startYr}` : `${startYr} \u2014 ${endYr}`;
 
   const actorTags = (inc.actors || []).map(a =>
