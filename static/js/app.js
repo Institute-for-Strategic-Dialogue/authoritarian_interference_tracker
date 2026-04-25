@@ -549,7 +549,7 @@ function renderVolumeChart(rows) {
     .style("background", "rgba(255,255,255,0.96)").style("border", "1px solid #ccc")
     .style("border-radius", "4px").style("padding", "6px 10px").style("font-size", "12px")
     .style("font-family", "'IBM Plex Sans', sans-serif").style("box-shadow", "0 2px 8px rgba(0,0,0,.12)")
-    .style("z-index", "100").style("white-space", "nowrap");
+    .style("z-index", "100000").style("white-space", "nowrap");
   el.style("position", "relative");
 
   const guide = g.append("line")
@@ -856,7 +856,7 @@ function renderSankey(countryRows, stackedRows, nodeCounts = {}) {
     .style("background", "rgba(255,255,255,0.95)").style("border", "1px solid #ccc")
     .style("border-radius", "4px").style("padding", "4px 8px").style("font-size", "12px")
     .style("font-family", "'IBM Plex Sans', sans-serif").style("box-shadow", "0 2px 8px rgba(0,0,0,.1)")
-    .style("z-index", "100").style("white-space", "nowrap");
+    .style("z-index", "100000").style("white-space", "nowrap");
 
   // Make container relative for tooltip positioning
   el.style("position", "relative");

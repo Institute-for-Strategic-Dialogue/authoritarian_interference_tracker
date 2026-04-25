@@ -103,7 +103,7 @@ html, body {
   white-space: normal;
   width: 280px;
   text-align: left;
-  z-index: 1000;
+  z-index: 100000;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0,0,0,0.18);
   letter-spacing: 0;
@@ -118,7 +118,7 @@ html, body {
   transform: translateX(-50%);
   border: 6px solid transparent;
   border-top-color: #2c3e50;
-  z-index: 1000;
+  z-index: 100001;
   pointer-events: none;
 }
 
