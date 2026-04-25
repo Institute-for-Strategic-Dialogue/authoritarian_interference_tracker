@@ -509,8 +509,8 @@ function renderVolumeChart(rows, carryover = []) {
   });
 
   // Carryover ribbons: incidents active in both year N and N+1. Drawn as
-  // thin horizontal bands anchored to each bar's TOP at the stacked height
-  // for that year, fading the color so bars stay the dominant signal.
+  // small bezier bands sitting ABOVE the bar tops so they don't disappear
+  // into the colored stacks; thickness scales with the carryover count.
   if (carryover && carryover.length) {
     const carryMap = {};
     carryover.forEach(d => { carryMap[d.from_year] = d.count; });
@@ -519,43 +519,55 @@ function renderVolumeChart(rows, carryover = []) {
     stackData.forEach(d => {
       totalByYear[d.year] = actors.reduce((acc, a) => acc + (d[a] || 0), 0);
     });
-    const ribbonMaxPx = 18;
+    const ribbonMaxPx = 14;
+    const ribbonMinPx = 2;
+    const ribbonGap = 3;  // px of space between bar top and ribbon bottom
+
+    const ribbonG = g.append("g").attr("class", "carryover-layer");
 
     for (let i = 0; i < years.length - 1; i++) {
       const yr = years[i], nextYr = years[i + 1];
       if (yr === "Pre" || typeof yr !== "number") continue;
+      if (typeof nextYr !== "number") continue;
       const count = carryMap[yr] || 0;
       if (count === 0) continue;
 
       const xLeft = x(yr) + x.bandwidth();
       const xRight = x(nextYr);
-      // Anchor the ribbon to the bar tops on each side (where the count
-      // tapers to zero), height proportional to carryover magnitude.
-      const leftTopY = y(totalByYear[yr] || 0);
-      const rightTopY = y(totalByYear[nextYr] || 0);
-      const thickness = (count / maxCount) * ribbonMaxPx;
+      // Bar tops on each side; ribbon sits above them.
+      const leftBarTop = y(totalByYear[yr] || 0);
+      const rightBarTop = y(totalByYear[nextYr] || 0);
+      const thickness = Math.max(ribbonMinPx, (count / maxCount) * ribbonMaxPx);
+
+      // Bottom edge: just above each bar (smaller y = higher on screen)
+      const leftBottom = leftBarTop - ribbonGap;
+      const rightBottom = rightBarTop - ribbonGap;
+      const leftTop = leftBottom - thickness;
+      const rightTop = rightBottom - thickness;
 
       const path = d3.path();
-      path.moveTo(xLeft, leftTopY);
+      path.moveTo(xLeft, leftBottom);
       path.bezierCurveTo(
-        (xLeft + xRight) / 2, leftTopY,
-        (xLeft + xRight) / 2, rightTopY,
-        xRight, rightTopY
+        (xLeft + xRight) / 2, leftBottom,
+        (xLeft + xRight) / 2, rightBottom,
+        xRight, rightBottom
       );
+      path.lineTo(xRight, rightTop);
       path.bezierCurveTo(
-        (xLeft + xRight) / 2, rightTopY + thickness,
-        (xLeft + xRight) / 2, leftTopY + thickness,
-        xLeft, leftTopY + thickness
+        (xLeft + xRight) / 2, rightTop,
+        (xLeft + xRight) / 2, leftTop,
+        xLeft, leftTop
       );
       path.closePath();
 
-      g.append("path")
+      ribbonG.append("path")
         .attr("d", path.toString())
-        .attr("fill", "#5C6771")
-        .attr("fill-opacity", 0.18)
-        .attr("stroke", "#5C6771")
-        .attr("stroke-opacity", 0.35)
-        .attr("stroke-width", 0.5)
+        .attr("fill", "#37474F")
+        .attr("fill-opacity", 0.55)
+        .attr("stroke", "#1f2a30")
+        .attr("stroke-opacity", 0.7)
+        .attr("stroke-width", 0.6)
+        .style("cursor", "help")
         .append("title").text(`${count} incident${count === 1 ? "" : "s"} active in both ${yr} and ${nextYr}`);
     }
   }
