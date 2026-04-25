@@ -371,20 +371,6 @@ def api_incidents():
     volume_rows = [{"year": y, "actor": a, "count": c}
                    for y, bucket in sorted(vol.items()) for a, c in bucket.items()]
 
-    # --- Year-to-year carryover (incidents active in BOTH year N and N+1) ---
-    # Feeds the thin ribbon between adjacent bars in the volume chart so
-    # readers can see how much of each year's activity persists into the
-    # next year vs. how much is new-onset.
-    carry = defaultdict(int)
-    for inc in filtered:
-        sy, ey = inc["start_year"], inc["end_year"]
-        if not sy:
-            continue
-        last = ey if ey else datetime.now().year
-        for y in range(sy, last):
-            carry[y] += 1
-    carryover_rows = [{"from_year": y, "count": c} for y, c in sorted(carry.items())]
-
     # --- Stacked bar: tools x actor ---
     tba = defaultdict(lambda: defaultdict(int))
     for inc in filtered:
@@ -427,7 +413,6 @@ def api_incidents():
         "page_size": page_size,
         "incidents": page_items,
         "volume_over_time": volume_rows,
-        "year_carryover": carryover_rows,
         "stacked": stacked_rows,
         "ttp_by_type": ttp_rows,
         "country_actor": country_rows,

@@ -124,6 +124,7 @@ async function init() {
   if (state.filters.countries.size === 1) $("#country-select").value = Array.from(state.filters.countries)[0];
 
   bindEvents();
+  bindResize();
   await refresh();
 
   // Load all incidents for related-incident lookup (unpaginated)
@@ -220,6 +221,30 @@ function updatePillStates() {
     const active = state.filters.actors.has(p.dataset.actor);
     p.classList.toggle("active", active);
     _pillStyle(p, actorColor(p.dataset.actor), active);
+  });
+}
+
+// Re-render every chart with the cached API response — used after a viewport
+// resize. Each render function clears its container first so this is safe.
+function redrawCharts() {
+  if (!lastData) return;
+  const d = lastData;
+  try { renderSankey(d.country_actor || [], d.stacked || []); } catch(e) {}
+  try { renderVolumeChart(d.volume_over_time || []); } catch(e) {}
+  try { renderMap(d.country_actor || [], d.country_meta || {}); } catch(e) {}
+  try { renderStacked(d.stacked || []); } catch(e) {}
+  try { renderTtpTreemap(d.ttp_by_type || {}); } catch(e) {}
+  try { renderEntityFiltered(); } catch(e) {}
+}
+
+// Debounced viewport resize → redraw all charts. ResizeObserver on the
+// chart containers would be tighter (catches container changes from layout
+// shifts) but window resize covers 99% of the case at far less complexity.
+function bindResize() {
+  let timer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(timer);
+    timer = setTimeout(redrawCharts, 150);
   });
 }
 
@@ -345,7 +370,7 @@ async function refresh() {
   renderApplied();
   updatePillStates();
   try { renderSankey(data.country_actor || [], data.stacked || []); } catch(e) { console.error("Sankey:", e); }
-  try { renderVolumeChart(data.volume_over_time || [], data.year_carryover || []); } catch(e) { console.error("VolumeChart:", e); }
+  try { renderVolumeChart(data.volume_over_time || []); } catch(e) { console.error("VolumeChart:", e); }
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
   try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
   try { renderTtpTreemap(data.ttp_by_type || {}); } catch(e) { console.error("TtpTreemap:", e); }
@@ -412,7 +437,7 @@ function clearAll() {
 // ========================================================================
 // VOLUME OVER TIME CHART (stacked bar by actor)
 // ========================================================================
-function renderVolumeChart(rows, carryover = []) {
+function renderVolumeChart(rows) {
   const el = d3.select("#volume-chart");
   el.selectAll("*").remove();
 
@@ -422,7 +447,7 @@ function renderVolumeChart(rows, carryover = []) {
   }
 
   const container = document.querySelector(".viz-volume");
-  const width = Math.max(300, Math.min(500, container.clientWidth - 32));
+  const width = Math.max(300, container.clientWidth - 32);
   const height = Math.max(300, container.clientHeight - 40);
   const margin = { top: 20, right: 16, bottom: 35, left: 40 };
   const innerW = width - margin.left - margin.right;
@@ -508,70 +533,6 @@ function renderVolumeChart(rows, carryover = []) {
       .append("title").text(d => `${actorName} ${d.data.year}: ${d.data[actorName]}`);
   });
 
-  // Carryover ribbons: incidents active in both year N and N+1. Drawn as
-  // small bezier bands sitting ABOVE the bar tops so they don't disappear
-  // into the colored stacks; thickness scales with the carryover count.
-  if (carryover && carryover.length) {
-    const carryMap = {};
-    carryover.forEach(d => { carryMap[d.from_year] = d.count; });
-    const maxCount = d3.max(Object.values(carryMap)) || 1;
-    const totalByYear = {};
-    stackData.forEach(d => {
-      totalByYear[d.year] = actors.reduce((acc, a) => acc + (d[a] || 0), 0);
-    });
-    const ribbonMaxPx = 14;
-    const ribbonMinPx = 2;
-    const ribbonGap = 3;  // px of space between bar top and ribbon bottom
-
-    const ribbonG = g.append("g").attr("class", "carryover-layer");
-
-    for (let i = 0; i < years.length - 1; i++) {
-      const yr = years[i], nextYr = years[i + 1];
-      if (yr === "Pre" || typeof yr !== "number") continue;
-      if (typeof nextYr !== "number") continue;
-      const count = carryMap[yr] || 0;
-      if (count === 0) continue;
-
-      const xLeft = x(yr) + x.bandwidth();
-      const xRight = x(nextYr);
-      // Bar tops on each side; ribbon sits above them.
-      const leftBarTop = y(totalByYear[yr] || 0);
-      const rightBarTop = y(totalByYear[nextYr] || 0);
-      const thickness = Math.max(ribbonMinPx, (count / maxCount) * ribbonMaxPx);
-
-      // Bottom edge: just above each bar (smaller y = higher on screen)
-      const leftBottom = leftBarTop - ribbonGap;
-      const rightBottom = rightBarTop - ribbonGap;
-      const leftTop = leftBottom - thickness;
-      const rightTop = rightBottom - thickness;
-
-      const path = d3.path();
-      path.moveTo(xLeft, leftBottom);
-      path.bezierCurveTo(
-        (xLeft + xRight) / 2, leftBottom,
-        (xLeft + xRight) / 2, rightBottom,
-        xRight, rightBottom
-      );
-      path.lineTo(xRight, rightTop);
-      path.bezierCurveTo(
-        (xLeft + xRight) / 2, rightTop,
-        (xLeft + xRight) / 2, leftTop,
-        xLeft, leftTop
-      );
-      path.closePath();
-
-      ribbonG.append("path")
-        .attr("d", path.toString())
-        .attr("fill", "#37474F")
-        .attr("fill-opacity", 0.55)
-        .attr("stroke", "#1f2a30")
-        .attr("stroke-opacity", 0.7)
-        .attr("stroke-width", 0.6)
-        .style("cursor", "help")
-        .append("title").text(`${count} incident${count === 1 ? "" : "s"} active in both ${yr} and ${nextYr}`);
-    }
-  }
-
   // Visual break between pre-2014 and 2014+
   if (hasPre && years.length > 1) {
     const breakX = x("Pre") + x.bandwidth() + x.step() * 0.075;
@@ -613,7 +574,7 @@ function renderSankey(countryRows, stackedRows) {
   }
 
   const container = document.querySelector(".viz-sankey");
-  const width = Math.max(400, Math.min(1200, container.clientWidth - 32));
+  const width = Math.max(400, container.clientWidth - 32);
   const height = 380;
   const margin = { top: 10, right: 16, bottom: 10, left: 16 };
   const innerW = width - margin.left - margin.right;
@@ -1085,7 +1046,7 @@ function renderStacked(rows) {
   const seriesData = tools.map(t => ({ tool: t, ...nested.get(t) }));
 
   const container = document.querySelector(".stacked-section");
-  const width = Math.max(400, Math.min(1200, container.clientWidth - 32));
+  const width = Math.max(400, container.clientWidth - 32);
   const height = Math.max(200, tools.length * 32 + 60);
 
   const svg = el.append("svg").attr("width", width).attr("height", height);
