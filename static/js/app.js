@@ -102,10 +102,18 @@ async function init() {
   config = await (await fetch("/api/config")).json();
   meta = await (await fetch("/api/meta")).json();
 
-  // Restore filters from URL params
+  // Restore filters from URL params. If no URL params are present at all,
+  // default the start year to 2010 so the catalog opens to the modern
+  // window rather than the historical tail. Pre-2010 incidents stay
+  // accessible — clear the start year or set it to 2000 to see them.
   const urlParams = new URLSearchParams(window.location.search);
+  const noFiltersInUrl = !urlParams.toString();
   if (urlParams.get("q")) { state.filters.q = urlParams.get("q"); }
-  if (urlParams.get("start")) { state.filters.start = parseInt(urlParams.get("start")); }
+  if (urlParams.get("start")) {
+    state.filters.start = parseInt(urlParams.get("start"));
+  } else if (noFiltersInUrl) {
+    state.filters.start = 2010;
+  }
   if (urlParams.get("end")) { state.filters.end = parseInt(urlParams.get("end")); }
   if (urlParams.get("actors")) { urlParams.get("actors").split(",").forEach(a => state.filters.actors.add(a)); }
   if (urlParams.get("countries")) { urlParams.get("countries").split(",").forEach(c => state.filters.countries.add(c)); }
@@ -355,6 +363,17 @@ async function refresh() {
   lastData = data;
 
   $("#total-count").textContent = data.total;
+
+  // Footer: surface the most-recently-updated incident's timestamp so
+  // analysts can tell at a glance how fresh the catalog is.
+  const updated = data.data_last_updated;
+  const fEl = document.getElementById("footer-updated");
+  if (fEl && updated) {
+    const d = new Date(updated);
+    if (!isNaN(d)) {
+      fEl.textContent = `Data last updated ${d.toISOString().slice(0, 10)}`;
+    }
+  }
 
   // Update export links with current filters
   const exportParams = currentParams().replace(/&?page=\d+/, "").replace(/&?page_size=\d+/, "");
@@ -1630,9 +1649,18 @@ async function refreshEntityNetwork() {
   }
 }
 
+// Active entity view ('chord' | 'network'). Drives whether the
+// min-incidents slider applies — chord view ignores it and shows the
+// top-25 by frequency regardless.
+let entityView = 'chord';
+
 function _entityFilters() {
+  const sliderVal = parseInt((document.getElementById('ent-min-slider') || {}).value) || 3;
   return {
-    minInc: parseInt((document.getElementById('ent-min-slider') || {}).value) || 3,
+    // Only the network view filters by min-incidents; the chord always
+    // shows the top entities regardless so users don't have to fiddle
+    // with the slider to see anything.
+    minInc: entityView === 'network' ? sliderVal : 1,
     role:   (document.getElementById('ent-role-filter') || {}).value || 'all',
     type:   (document.getElementById('ent-type-filter') || {}).value || 'all',
     showSources: (document.getElementById('ent-show-sources') || {}).checked || false,
@@ -1720,7 +1748,9 @@ function renderEntityChord(entities, allPairs) {
   }
 
   const width = container.clientWidth || 600;
-  const height = Math.max(420, Math.min(640, container.clientWidth || 480));
+  // Use the container's actual height so the chord fills the layout cell;
+  // fall back to a square if clientHeight is 0 (rare, pre-layout edge case).
+  const height = container.clientHeight || Math.max(420, Math.min(640, width));
   const outerR = Math.min(width, height) / 2 - 110;
   const innerR = outerR - 14;
 
@@ -2094,21 +2124,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const typeSelect = document.getElementById("ent-type-filter");
   const srcCheck = document.getElementById("ent-show-sources");
 
-  // View toggle: Chord / Network
-  document.querySelectorAll('.ent-view-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const view = btn.dataset.view;
-      document.querySelectorAll('.ent-view-btn').forEach(b => {
-        const active = b.dataset.view === view;
-        b.classList.toggle('ent-view-btn--active', active);
-        b.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-      const chord = document.getElementById('entity-chord');
-      const graph = document.getElementById('entity-graph');
-      if (chord) chord.style.display = view === 'chord' ? '' : 'none';
-      if (graph) graph.style.display = view === 'network' ? '' : 'none';
+  // View toggle: Chord / Network. Chord is the default; network is the
+  // alternate. Min-incidents slider is shown only for the network view.
+  function applyEntityView(view) {
+    entityView = view;
+    document.querySelectorAll('.ent-view-btn').forEach(b => {
+      const active = b.dataset.view === view;
+      b.classList.toggle('ent-view-btn--active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
     });
+    const chord = document.getElementById('entity-chord');
+    const graph = document.getElementById('entity-graph');
+    if (chord) chord.style.display = view === 'chord' ? '' : 'none';
+    if (graph) graph.style.display = view === 'network' ? '' : 'none';
+    const minGroup = document.querySelector('.ent-min-group');
+    if (minGroup) minGroup.style.display = view === 'network' ? '' : 'none';
+    renderEntityFiltered();
+  }
+  document.querySelectorAll('.ent-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyEntityView(btn.dataset.view));
   });
+  // Initial slider visibility (chord is default → hidden)
+  const initMinGroup = document.querySelector('.ent-min-group');
+  if (initMinGroup) initMinGroup.style.display = 'none';
 
   if (slider) slider.addEventListener("input", () => { valLabel.textContent = slider.value; renderEntityFiltered(); });
   if (roleSelect) roleSelect.addEventListener("change", () => renderEntityFiltered());

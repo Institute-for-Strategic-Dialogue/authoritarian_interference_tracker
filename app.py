@@ -173,9 +173,13 @@ def _fetch_all_incidents() -> list[dict]:
         return _cache["data"] or []
 
     incidents = []
+    last_updated = None
     for inc in raw:
         if inc.get("hidden"):
             continue
+        upd = inc.get("updated_at")
+        if upd and (last_updated is None or upd > last_updated):
+            last_updated = upd
         incidents.append(_transform(inc))
 
     # Sort reverse chronological
@@ -183,6 +187,7 @@ def _fetch_all_incidents() -> list[dict]:
 
     _cache["data"] = incidents
     _cache["ts"] = now
+    _cache["last_updated"] = last_updated
     return incidents
 
 
@@ -519,6 +524,7 @@ def api_incidents():
         "sankey_node_counts": sankey_node_counts,
         "entity_chord": chord_pairs_out,
         "entity_table": entity_rows,
+        "data_last_updated": _cache.get("last_updated"),
     })
 
 
