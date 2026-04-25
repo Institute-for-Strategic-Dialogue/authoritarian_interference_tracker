@@ -102,18 +102,10 @@ async function init() {
   config = await (await fetch("/api/config")).json();
   meta = await (await fetch("/api/meta")).json();
 
-  // Restore filters from URL params. If no URL params are present at all,
-  // default the start year to 2010 so the catalog opens to the modern
-  // window rather than the historical tail. Pre-2010 incidents stay
-  // accessible — clear the start year or set it to 2000 to see them.
+  // Restore filters from URL params
   const urlParams = new URLSearchParams(window.location.search);
-  const noFiltersInUrl = !urlParams.toString();
   if (urlParams.get("q")) { state.filters.q = urlParams.get("q"); }
-  if (urlParams.get("start")) {
-    state.filters.start = parseInt(urlParams.get("start"));
-  } else if (noFiltersInUrl) {
-    state.filters.start = 2010;
-  }
+  if (urlParams.get("start")) { state.filters.start = parseInt(urlParams.get("start")); }
   if (urlParams.get("end")) { state.filters.end = parseInt(urlParams.get("end")); }
   if (urlParams.get("actors")) { urlParams.get("actors").split(",").forEach(a => state.filters.actors.add(a)); }
   if (urlParams.get("countries")) { urlParams.get("countries").split(",").forEach(c => state.filters.countries.add(c)); }
@@ -1698,15 +1690,22 @@ function renderEntityFiltered() {
     nodeIds = new Set(graphNodes.map(n => n.id));
     graphEdges = graphEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
   }
-  renderEntityGraph({ nodes: graphNodes, edges: graphEdges });
-
   // --- Chord + richer table (default view) ---
   const tableData = (lastData && lastData.entity_table) || [];
   const chordPairs = (lastData && lastData.entity_chord) || [];
   const filteredEntities = tableData.filter(r => _passesEntityFilters(r, f));
-  renderEntityChord(filteredEntities, chordPairs);
-  renderEntityTable(filteredEntities);
-  bindInfoTips();
+
+  // Defer chart + table render to the next frame so the grid cell has its
+  // computed height before the chord measures container.clientHeight.
+  // Without this, on first load the chord can read clientHeight=0 and
+  // self-size to a fallback while the wrap is correctly 620px, making
+  // the two panes look misaligned.
+  requestAnimationFrame(() => {
+    renderEntityGraph({ nodes: graphNodes, edges: graphEdges });
+    renderEntityChord(filteredEntities, chordPairs);
+    renderEntityTable(filteredEntities);
+    bindInfoTips();
+  });
 }
 
 // Cap chord at this many entities so the ring stays readable. Anything
@@ -1874,7 +1873,9 @@ function renderEntityChord(entities, allPairs) {
 // span (min -> max across the data) so sparklines from different rows are
 // visually aligned by horizontal position.
 function _buildSparkline(activity, yearMin, yearMax) {
-  const w = 90, h = 22, pad = 1;
+  // Internal coordinate space; SVG width is 100% so the sparkline scales
+  // with whatever cell width the colgroup gives it.
+  const w = 100, h = 22, pad = 1;
   if (!activity || !activity.length) return '<span style="color:#bbb;font-size:10px;">—</span>';
   const span = Math.max(1, yearMax - yearMin);
   const map = new Map(activity.map(d => [d.year, d.count]));
@@ -1886,10 +1887,9 @@ function _buildSparkline(activity, yearMin, yearMax) {
     const yy = (h - pad) - (c / yMax) * (h - 2 * pad);
     points.push(`${x.toFixed(1)},${yy.toFixed(1)}`);
   }
-  // Filled area + line
   const areaPath = `M${pad},${h - pad} L${points.join(' L')} L${w - pad},${h - pad} Z`;
   const linePath = `M${points.join(' L')}`;
-  return `<svg class="ent-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle;">
+  return `<svg class="ent-spark" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="vertical-align:middle;display:block;">
     <path d="${areaPath}" fill="#5C6771" fill-opacity="0.18"/>
     <path d="${linePath}" fill="none" stroke="#37474F" stroke-width="1.2"/>
   </svg>`;

@@ -263,11 +263,16 @@ html, body {
 /* ---- Entity network + table ---- */
 .entity-layout {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 1fr 1fr;
   gap: 0;
   height: 620px;
+  align-items: stretch;
 }
-#entity-graph, #entity-chord { height: 100%; width: 100%; }
+#entity-graph, #entity-chord {
+  height: 100%; width: 100%;
+  min-width: 0;          /* let grid track shrink, never overflow */
+  overflow: hidden;
+}
 .ent-view { width: 100%; }
 .ent-view-btn {
   font-family: 'Space Mono', monospace; font-size: 11px;
@@ -281,7 +286,7 @@ html, body {
 }
 .ent-view-btn--active:hover { background: #37474F; color: #fff; border-color: #37474F; }
 
-.entity-tbl .ent-co-list { display: flex; flex-wrap: wrap; gap: 4px 6px; max-width: 280px; }
+.entity-tbl .ent-co-list { display: flex; flex-wrap: wrap; gap: 3px 5px; }
 .entity-tbl .ent-co-pill {
   font-size: 10.5px; padding: 1px 6px; border-radius: 10px;
   background: rgba(0,0,0,.05); color: var(--text-muted);
@@ -290,17 +295,33 @@ html, body {
 .entity-tbl .ent-co-pill strong { color: var(--text-strong); font-weight: 600; }
 .entity-tbl .ent-spark { display: block; }
 #entity-table-wrap {
+  height: 100%;
+  width: 100%;
+  min-width: 0;
   overflow-y: auto;
-  max-height: 540px;
+  overflow-x: hidden;
   border-left: 1px solid var(--border-color);
+  box-sizing: border-box;
 }
 @media (max-width: 900px) {
-  .entity-layout { grid-template-columns: 1fr; }
-  #entity-table-wrap { border-left: none; border-top: 1px solid var(--border-color); max-height: 250px; }
+  .entity-layout { grid-template-columns: 1fr; height: auto; }
+  #entity-graph, #entity-chord { height: 480px; }
+  #entity-table-wrap { border-left: none; border-top: 1px solid var(--border-color); height: 360px; }
 }
 
 /* ---- Entity table ---- */
-.entity-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.entity-tbl {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  table-layout: fixed;  /* fixed widths so cells can't push x-overflow */
+}
+.entity-tbl col.col-name   { width: 38%; }
+.entity-tbl col.col-count  { width: 7%;  }
+.entity-tbl col.col-co     { width: 36%; }
+.entity-tbl col.col-spark  { width: 19%; }
+.entity-tbl td, .entity-tbl th {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
 .entity-tbl th { position: sticky; top: 0; background: #f0f2f5; padding: 6px 10px; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; }
 .entity-tbl th:hover { color: var(--text-strong); }
 .entity-tbl td { padding: 4px 10px; border-top: 1px solid var(--border-color); }
