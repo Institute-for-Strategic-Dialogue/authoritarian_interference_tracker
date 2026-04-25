@@ -67,6 +67,23 @@ html, body {
 .intro-blurb {
   font-size: 14px; line-height: 1.5; color: #5C6771; margin: .75rem 0 0; max-width: 780px;
 }
+.counts-note {
+  font-size: 12.5px; line-height: 1.5; color: #6b7780;
+  margin: .5rem 0 0; max-width: 780px;
+  padding: .5rem .75rem; border-left: 3px solid #d6dde2;
+  background: rgba(0,0,0,.02); border-radius: 3px;
+}
+.counts-note strong { color: #2c3e50; }
+.counts-note em { font-style: italic; color: #2c3e50; }
+.info-tip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; margin-left: .35em;
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  color: #fff; background: #8a9aa3; border-radius: 50%;
+  cursor: help; user-select: none; vertical-align: 1px;
+  transition: background .15s ease;
+}
+.info-tip:hover, .info-tip:focus { background: #0068B2; outline: none; }
 
 /* ---- Filter bar (sticky) ---- */
 .filter-bar-wrap {

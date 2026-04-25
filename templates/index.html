@@ -56,6 +56,13 @@
         operational type, targets, and source reporting. Use filters below to
         drill into specific campaigns, and click any incident for full detail.
       </p>
+      <p class="counts-note">
+        <strong>Counts note:</strong> the headline number is unique incidents
+        matching your filters. Charts below count <em>activity slices</em>
+        (per actor, per year, per type), so a single multi-year, multi-actor
+        incident can appear several times across a chart. Chart totals will
+        usually exceed the headline — that's by design.
+      </p>
     </div>
   </header>
 
@@ -117,19 +124,34 @@
     <!-- 3. Visualization grid: volume (1/3) + sankey (2/3) -->
     <div class="viz-grid">
       <section class="card viz-volume">
-        <div class="card-title">VOLUME OVER TIME <span class="sub">by threat actor</span></div>
+        <div class="card-title">
+          VOLUME OVER TIME <span class="sub">by threat actor</span>
+          <span class="info-tip" tabindex="0"
+                title="Each multi-year incident contributes once to every year it spans, per actor. Totals exceed unique incident counts by design — they show sustained activity, not just new onsets."
+                aria-label="Counts info">i</span>
+        </div>
         <div id="volume-chart"></div>
       </section>
 
       <section class="card viz-sankey">
-        <div class="card-title">INCIDENT FLOW <span class="sub">type &rarr; actor &rarr; target country</span></div>
+        <div class="card-title">
+          INCIDENT FLOW <span class="sub">type &rarr; actor &rarr; target country</span>
+          <span class="info-tip" tabindex="0"
+                title="Each incident is split across all of its types, actors, and target countries — a multi-target, multi-actor incident appears in every flow band that applies."
+                aria-label="Counts info">i</span>
+        </div>
         <div id="sankey-chart"></div>
       </section>
     </div>
 
     <!-- TTP treemap (thin, full width) -->
     <section class="card" style="margin-top:.5rem;padding:4px 8px;">
-      <div class="card-title" style="font-size:11px;margin-bottom:2px;">TACTICS &amp; TECHNIQUES <span class="sub">grouped by incident type, sized by frequency</span></div>
+      <div class="card-title" style="font-size:11px;margin-bottom:2px;">
+        TACTICS &amp; TECHNIQUES <span class="sub">grouped by incident type, sized by frequency</span>
+        <span class="info-tip" tabindex="0"
+              title="A TTP is the specific tradecraft used (e.g. 'inauthentic amplification'). Filtering by a TTP can return more incidents than the broader type it lives under, because some incidents carry the TTP without the matching type label."
+              aria-label="Counts info">i</span>
+      </div>
       <div id="ttp-treemap"></div>
     </section>
 
