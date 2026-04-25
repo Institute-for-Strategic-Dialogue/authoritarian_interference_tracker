@@ -65,11 +65,11 @@ html, body {
 }
 .meta-bar .meta-link:hover { opacity: 1; border-bottom-color: var(--accent, #0068B2); }
 .intro-blurb {
-  font-size: 14px; line-height: 1.5; color: #5C6771; margin: .75rem 0 0; max-width: 780px;
+  font-size: 14px; line-height: 1.5; color: #5C6771; margin: .75rem 0 0;
 }
 .counts-note {
   font-size: 12.5px; line-height: 1.5; color: #6b7780;
-  margin: .5rem 0 0; max-width: 780px;
+  margin: .5rem 0 0;
   padding: .5rem .75rem; border-left: 3px solid #d6dde2;
   background: rgba(0,0,0,.02); border-radius: 3px;
 }
