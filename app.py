@@ -393,6 +393,83 @@ def api_incidents():
         ttp_rows[tool] = [{"ttp": ttp, "actor": a, "count": c}
                           for ttp, actors in ttps.items() for a, c in actors.items()]
 
+    # --- Entity chord + table aggregation ---
+    # Build per-entity records (incidents touched, co-occurrers, activity by
+    # year) and pairwise co-occurrence counts for the chord diagram. All
+    # filtered locally so chord/table reflect the current filter set without
+    # an extra round-trip to the incident-manager.
+    by_entity: dict = defaultdict(lambda: {
+        "name": None, "type": None, "roles": set(),
+        "incidents": [],
+    })
+    pair_counts: dict = defaultdict(int)
+
+    for inc in filtered:
+        ents = inc.get("entities") or []
+        # First pass: register each entity
+        norms = []
+        for e in ents:
+            norm = (e.get("normalized_name") or e.get("name") or "").strip().lower()
+            if not norm:
+                continue
+            norms.append(norm)
+            rec = by_entity[norm]
+            if rec["name"] is None:
+                rec["name"] = e.get("name") or norm
+                rec["type"] = e.get("entity_type")
+            if e.get("role"):
+                rec["roles"].add(e.get("role"))
+
+        # Second pass: record co-occurrence + activity per entity
+        unique_norms = list(dict.fromkeys(norms))  # preserve order, dedupe
+        for n in unique_norms:
+            others = [o for o in unique_norms if o != n]
+            by_entity[n]["incidents"].append({
+                "year": inc.get("start_year"),
+                "co": others,
+            })
+
+        # Pair counts (sorted tuple key, each pair counted once per incident)
+        for i, a in enumerate(unique_norms):
+            for b in unique_norms[i + 1:]:
+                key = tuple(sorted((a, b)))
+                pair_counts[key] += 1
+
+    entity_rows = []
+    for norm, rec in by_entity.items():
+        total = len(rec["incidents"])
+        activity = defaultdict(int)
+        co = defaultdict(int)
+        for ir in rec["incidents"]:
+            if ir["year"]:
+                activity[ir["year"]] += 1
+            for o in ir["co"]:
+                co[o] += 1
+        top_co = sorted(co.items(), key=lambda kv: -kv[1])[:5]
+        entity_rows.append({
+            "normalized_name": norm,
+            "name": rec["name"],
+            "type": rec["type"],
+            "roles": sorted(rec["roles"]),
+            "total": total,
+            "top_co": [
+                {
+                    "normalized_name": cn,
+                    "name": (by_entity.get(cn, {}).get("name") or cn),
+                    "type": by_entity.get(cn, {}).get("type"),
+                    "count": cnt,
+                }
+                for cn, cnt in top_co
+            ],
+            "activity": [{"year": y, "count": c} for y, c in sorted(activity.items())],
+        })
+    entity_rows.sort(key=lambda r: -r["total"])
+
+    chord_pairs_out = [
+        {"a": a, "b": b, "count": cnt}
+        for (a, b), cnt in pair_counts.items()
+    ]
+
     # --- Country x actor (for map) ---
     cxa = defaultdict(lambda: defaultdict(int))
     for inc in filtered:
@@ -440,6 +517,8 @@ def api_incidents():
         "country_actor": country_rows,
         "country_meta": COUNTRY_CENTROIDS,
         "sankey_node_counts": sankey_node_counts,
+        "entity_chord": chord_pairs_out,
+        "entity_table": entity_rows,
     })
 
 

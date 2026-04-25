@@ -267,7 +267,28 @@ html, body {
   gap: 0;
   min-height: 540px;
 }
-#entity-graph { min-height: 540px; }
+#entity-graph, #entity-chord { min-height: 540px; }
+.ent-view { width: 100%; }
+.ent-view-btn {
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  padding: 3px 10px; border-radius: 3px; border: 1px solid var(--border-color);
+  background: #fff; color: var(--text-muted); cursor: pointer;
+  letter-spacing: .04em;
+}
+.ent-view-btn:hover { color: #0068B2; border-color: #0068B2; }
+.ent-view-btn--active {
+  background: #2c3e50; color: #fff; border-color: #2c3e50;
+}
+.ent-view-btn--active:hover { background: #37474F; color: #fff; border-color: #37474F; }
+
+.entity-tbl .ent-co-list { display: flex; flex-wrap: wrap; gap: 4px 6px; max-width: 280px; }
+.entity-tbl .ent-co-pill {
+  font-size: 10.5px; padding: 1px 6px; border-radius: 10px;
+  background: rgba(0,0,0,.05); color: var(--text-muted);
+  white-space: nowrap;
+}
+.entity-tbl .ent-co-pill strong { color: var(--text-strong); font-weight: 600; }
+.entity-tbl .ent-spark { display: block; }
 #entity-table-wrap {
   overflow-y: auto;
   max-height: 540px;

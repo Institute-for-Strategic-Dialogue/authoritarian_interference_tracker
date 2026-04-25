@@ -164,13 +164,18 @@
       <div id="map"></div>
     </section>
 
-    <!-- 6. Entity network + table -->
+    <!-- 6. Entity relationships -->
     <section class="card entity-section" style="margin-top:1rem;">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <span>ENTITY NETWORK <span class="sub">co-occurrence by incident</span></span>
+        <span>
+          ENTITY RELATIONSHIPS <span class="sub">co-occurrence by incident</span>
+          <span class="info-tip" tabindex="0"
+                data-tip="Chord arcs around the perimeter are entities sized by incident count. Lines between arcs show co-occurrence in the same incident. The network view is an alternate force-directed layout — toggle on the right."
+                aria-label="Counts info">i</span>
+        </span>
         <div class="ent-controls">
           <label>Min incidents</label>
-          <input type="range" id="ent-min-slider" min="1" max="10" value="3" style="width:80px;vertical-align:middle;">
+          <input type="range" id="ent-min-slider" min="1" max="20" value="3" style="width:80px;vertical-align:middle;">
           <span id="ent-min-val">3</span>
           <label style="margin-left:12px;">Role</label>
           <select id="ent-role-filter">
@@ -195,13 +200,25 @@
           <label style="margin-left:12px;">
             <input type="checkbox" id="ent-show-sources"> Sources
           </label>
+          <span class="ent-view-toggle" role="tablist" aria-label="View" style="margin-left:12px;display:inline-flex;gap:4px;">
+            <button type="button" class="ent-view-btn ent-view-btn--active" data-view="chord" role="tab" aria-selected="true">Chord</button>
+            <button type="button" class="ent-view-btn" data-view="network" role="tab" aria-selected="false">Network ›</button>
+          </span>
         </div>
       </div>
       <div class="entity-layout">
-        <div id="entity-graph"></div>
+        <div id="entity-chord" class="ent-view ent-view--active"></div>
+        <div id="entity-graph" class="ent-view" style="display:none;"></div>
         <div id="entity-table-wrap">
           <table class="entity-tbl" id="entity-tbl">
-            <thead><tr><th>Name</th><th>#</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>#</th>
+                <th>Top co-occurrers</th>
+                <th>Activity</th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>

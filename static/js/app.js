@@ -1616,6 +1616,9 @@ const selectedEntities = new Set();  // clicked entity names for incident filter
 let entityClickRefresh = false;  // true when refresh was triggered by entity click
 
 async function refreshEntityNetwork() {
+  // Force-directed network still pulls from /api/entities/network because
+  // it needs the {nodes, edges} shape. The chord + table read from the
+  // /api/incidents response (lastData) so they don't require this fetch.
   const params = currentParams();
   try {
     const res = await fetch(`/api/entities/network?${params}`);
@@ -1623,28 +1626,40 @@ async function refreshEntityNetwork() {
     renderEntityFiltered();
   } catch(e) {
     console.error("EntityNetwork:", e);
+    renderEntityFiltered();  // still render chord + table from lastData
   }
 }
 
-function renderEntityFiltered() {
-  const allNodes = entityRawData.nodes || [];
-  const minInc = parseInt((document.getElementById('ent-min-slider') || {}).value) || 3;
-  const roleFilter = (document.getElementById('ent-role-filter') || {}).value || 'all';
-  const typeFilter = (document.getElementById('ent-type-filter') || {}).value || 'all';
-  const showSources = (document.getElementById('ent-show-sources') || {}).checked || false;
+function _entityFilters() {
+  return {
+    minInc: parseInt((document.getElementById('ent-min-slider') || {}).value) || 3,
+    role:   (document.getElementById('ent-role-filter') || {}).value || 'all',
+    type:   (document.getElementById('ent-type-filter') || {}).value || 'all',
+    showSources: (document.getElementById('ent-show-sources') || {}).checked || false,
+  };
+}
 
-  // Graph: apply filters
-  let graphNodes = allNodes.filter(n => {
-    if (n.incident_count < minInc) return false;
-    if (!showSources && n.role === 'source') return false;
-    if (roleFilter !== 'all' && n.role !== roleFilter) return false;
-    if (typeFilter !== 'all' && n.entity_type !== typeFilter) return false;
-    return true;
-  });
+function _passesEntityFilters(rec, f) {
+  // rec can be a network node (incident_count, role, entity_type) or a
+  // chord/table row (total, roles[], type). Normalize the access.
+  const total = rec.incident_count != null ? rec.incident_count : rec.total;
+  if (total < f.minInc) return false;
+  const roles = rec.roles ? rec.roles : (rec.role ? [rec.role] : []);
+  if (!f.showSources && roles.includes('source') && !roles.some(r => r !== 'source')) return false;
+  if (f.role !== 'all' && !roles.includes(f.role)) return false;
+  const t = rec.entity_type || rec.type;
+  if (f.type !== 'all' && t !== f.type) return false;
+  return true;
+}
+
+function renderEntityFiltered() {
+  const f = _entityFilters();
+
+  // --- Force-directed network (alternate view) ---
+  const allNodes = (entityRawData && entityRawData.nodes) || [];
+  let graphNodes = allNodes.filter(n => _passesEntityFilters(n, f));
   let nodeIds = new Set(graphNodes.map(n => n.id));
   let graphEdges = (entityRawData.edges || []).filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
-
-  // When entities are selected, show only their neighborhood
   if (selectedEntities.size) {
     const neighbors = new Set(selectedEntities);
     graphEdges.forEach(e => {
@@ -1655,14 +1670,298 @@ function renderEntityFiltered() {
     nodeIds = new Set(graphNodes.map(n => n.id));
     graphEdges = graphEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
   }
-
   renderEntityGraph({ nodes: graphNodes, edges: graphEdges });
 
-  // Table: respect role + type filters, and entity selection
-  let tableNodes = allNodes;
-  if (roleFilter !== 'all') tableNodes = tableNodes.filter(n => n.role === roleFilter);
-  if (typeFilter !== 'all') tableNodes = tableNodes.filter(n => n.entity_type === typeFilter);
-  renderEntityTable(tableNodes);
+  // --- Chord + richer table (default view) ---
+  const tableData = (lastData && lastData.entity_table) || [];
+  const chordPairs = (lastData && lastData.entity_chord) || [];
+  const filteredEntities = tableData.filter(r => _passesEntityFilters(r, f));
+  renderEntityChord(filteredEntities, chordPairs);
+  renderEntityTable(filteredEntities);
+  bindInfoTips();
+}
+
+// Cap chord at this many entities so the ring stays readable. Anything
+// beyond is still in the table; chord shows the heavy hitters.
+const CHORD_TOP_N = 25;
+
+function renderEntityChord(entities, allPairs) {
+  const container = document.getElementById('entity-chord');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!entities.length) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:#999;font-size:13px;">No entities match the current filters.</div>';
+    return;
+  }
+
+  // Pick the top-N entities by total. Anything beyond is summarized as a
+  // single "Others" arc carrying the leftover ribbons collapsed into it.
+  const top = entities.slice(0, CHORD_TOP_N);
+  const topNorms = new Set(top.map(e => e.normalized_name));
+  const topIdx = new Map(top.map((e, i) => [e.normalized_name, i]));
+
+  // Build symmetric matrix
+  const n = top.length;
+  const matrix = Array.from({ length: n }, () => new Array(n).fill(0));
+  let maxPair = 0;
+  (allPairs || []).forEach(p => {
+    const i = topIdx.get(p.a), j = topIdx.get(p.b);
+    if (i == null || j == null) return;
+    matrix[i][j] += p.count;
+    matrix[j][i] += p.count;
+    maxPair = Math.max(maxPair, p.count);
+  });
+
+  // Many entities have no co-occurrers in the top set — give them a tiny
+  // self-weight so they still show up as a sliver of arc rather than vanish.
+  for (let i = 0; i < n; i++) {
+    const rowSum = matrix[i].reduce((a, b) => a + b, 0);
+    if (rowSum === 0) matrix[i][i] = 1;
+  }
+
+  const width = container.clientWidth || 600;
+  const height = Math.max(420, Math.min(640, container.clientWidth || 480));
+  const outerR = Math.min(width, height) / 2 - 110;
+  const innerR = outerR - 14;
+
+  const svg = d3.select(container).append('svg')
+    .attr('width', width).attr('height', height)
+    .attr('viewBox', [-width / 2, -height / 2, width, height]);
+
+  const chord = d3.chord().padAngle(0.012).sortSubgroups(d3.descending)(matrix);
+  const arc = d3.arc().innerRadius(innerR).outerRadius(outerR);
+  const ribbon = d3.ribbon().radius(innerR);
+
+  const colorOf = e => ENT_TYPE_COLORS[e.type] || '#888';
+
+  // Ribbons (drawn under arcs)
+  const ribbonG = svg.append('g').attr('fill-opacity', 0.5);
+  ribbonG.selectAll('path')
+    .data(chord)
+    .enter()
+    .append('path')
+    .attr('d', ribbon)
+    .attr('fill', d => {
+      // Color the ribbon by the larger end's type — the more central role
+      const sIdx = d.source.value > d.target.value ? d.source.index : d.target.index;
+      return colorOf(top[sIdx]);
+    })
+    .attr('stroke', d => {
+      const sIdx = d.source.value > d.target.value ? d.source.index : d.target.index;
+      return d3.color(colorOf(top[sIdx])).darker(0.5).formatHex();
+    })
+    .attr('stroke-width', 0.5)
+    .style('cursor', 'pointer')
+    .on('mouseenter', function(_, d) {
+      d3.select(this).attr('fill-opacity', 0.85);
+      const a = top[d.source.index], b = top[d.target.index];
+      // Look up actual count (matrix may have self-padding)
+      const c = matrix[d.source.index][d.target.index];
+      showFloatingTip(this, `<strong>${a.name}</strong> ↔ <strong>${b.name}</strong><br><span style="color:#aab;">${c} co-incident${c === 1 ? '' : 's'}</span>`);
+    })
+    .on('mouseleave', function() {
+      d3.select(this).attr('fill-opacity', 0.5);
+      hideFloatingTip();
+    })
+    .on('click', (_, d) => {
+      // Filter to both entities
+      const a = top[d.source.index], b = top[d.target.index];
+      selectedEntities.clear();
+      selectedEntities.add(a.normalized_name);
+      selectedEntities.add(b.normalized_name);
+      state.filters.entities = new Set(selectedEntities);
+      state.page = 1;
+      entityClickRefresh = true;
+      refresh();
+    });
+
+  // Arc groups
+  const groupG = svg.append('g');
+  const group = groupG.selectAll('g')
+    .data(chord.groups)
+    .enter()
+    .append('g')
+    .style('cursor', 'pointer');
+
+  group.append('path')
+    .attr('d', arc)
+    .attr('fill', d => colorOf(top[d.index]))
+    .attr('stroke', d => d3.color(colorOf(top[d.index])).darker(0.5).formatHex())
+    .attr('stroke-width', 1)
+    .on('mouseenter', function(_, d) {
+      const e = top[d.index];
+      showFloatingTip(this, `<strong>${e.name}</strong> <span style="color:#aab;">(${e.type || '—'})</span><br>${e.total} incident${e.total === 1 ? '' : 's'}`);
+      // Dim non-connected ribbons
+      ribbonG.selectAll('path').attr('fill-opacity', r =>
+        (r.source.index === d.index || r.target.index === d.index) ? 0.85 : 0.08
+      );
+    })
+    .on('mouseleave', function() {
+      hideFloatingTip();
+      ribbonG.selectAll('path').attr('fill-opacity', 0.5);
+    })
+    .on('click', (_, d) => {
+      const e = top[d.index];
+      if (selectedEntities.has(e.normalized_name)) selectedEntities.delete(e.normalized_name);
+      else { selectedEntities.clear(); selectedEntities.add(e.normalized_name); }
+      state.filters.entities = new Set(selectedEntities);
+      state.page = 1;
+      entityClickRefresh = true;
+      refresh();
+    });
+
+  // Arc labels — position outside the arc at its midpoint
+  group.append('text')
+    .each(d => { d.angle = (d.startAngle + d.endAngle) / 2; })
+    .attr('dy', '.35em')
+    .attr('transform', d =>
+      `rotate(${(d.angle * 180 / Math.PI - 90)})` +
+      `translate(${outerR + 8})` +
+      (d.angle > Math.PI ? 'rotate(180)' : '')
+    )
+    .attr('text-anchor', d => d.angle > Math.PI ? 'end' : null)
+    .style('font-size', '11px')
+    .style('font-family', "'IBM Plex Sans', sans-serif")
+    .style('fill', '#37474F')
+    .text(d => {
+      const e = top[d.index];
+      const lbl = e.name.length > 22 ? e.name.slice(0, 21) + '…' : e.name;
+      return `${lbl} (${e.total})`;
+    });
+
+  // Caption — what view this is + how many entities are in the chord
+  svg.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('y', height / 2 - 8)
+    .style('font-size', '11px')
+    .style('font-family', "'Space Mono', monospace")
+    .style('fill', '#8a9aa3')
+    .style('letter-spacing', '.04em')
+    .text(`top ${top.length} of ${entities.length} entities`);
+}
+
+// Build a small inline sparkline of activity per year. Uses a fixed year
+// span (min -> max across the data) so sparklines from different rows are
+// visually aligned by horizontal position.
+function _buildSparkline(activity, yearMin, yearMax) {
+  const w = 90, h = 22, pad = 1;
+  if (!activity || !activity.length) return '<span style="color:#bbb;font-size:10px;">—</span>';
+  const span = Math.max(1, yearMax - yearMin);
+  const map = new Map(activity.map(d => [d.year, d.count]));
+  const yMax = Math.max(1, ...activity.map(d => d.count));
+  const points = [];
+  for (let y = yearMin; y <= yearMax; y++) {
+    const c = map.get(y) || 0;
+    const x = pad + ((y - yearMin) / span) * (w - 2 * pad);
+    const yy = (h - pad) - (c / yMax) * (h - 2 * pad);
+    points.push(`${x.toFixed(1)},${yy.toFixed(1)}`);
+  }
+  // Filled area + line
+  const areaPath = `M${pad},${h - pad} L${points.join(' L')} L${w - pad},${h - pad} Z`;
+  const linePath = `M${points.join(' L')}`;
+  return `<svg class="ent-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle;">
+    <path d="${areaPath}" fill="#5C6771" fill-opacity="0.18"/>
+    <path d="${linePath}" fill="none" stroke="#37474F" stroke-width="1.2"/>
+  </svg>`;
+}
+
+function renderEntityTable(entities) {
+  const tbody = document.querySelector('#entity-tbl tbody');
+  if (!tbody) return;
+  if (!entities.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;padding:1rem;">No entities match the current filters.</td></tr>';
+    return;
+  }
+  // Common year span across all visible entities so sparklines align
+  let yMin = Infinity, yMax = -Infinity;
+  entities.forEach(e => {
+    (e.activity || []).forEach(a => {
+      if (a.year < yMin) yMin = a.year;
+      if (a.year > yMax) yMax = a.year;
+    });
+  });
+  if (!isFinite(yMin)) { yMin = new Date().getFullYear(); yMax = yMin; }
+
+  tbody.innerHTML = entities.map(n => {
+    const sel = selectedEntities.has(n.normalized_name) ? 'ent-row--selected' : '';
+    const roleBadges = (n.roles || [])
+      .map(r => `<span class="ent-role ent-role--${r}">${r.replace('_', ' ')}</span>`)
+      .join(' ');
+    const typeBadge = n.type
+      ? `<span class="ent-type">${n.type}</span>`
+      : '';
+    const co = (n.top_co || []).map(c =>
+      `<span class="ent-co-pill" title="${c.type || ''}">${c.name} <strong>${c.count}</strong></span>`
+    ).join('');
+    return `<tr class="ent-row ${sel}" style="cursor:pointer;" data-eid="${n.normalized_name}">
+      <td style="min-width:180px;"><strong>${n.name}</strong><br>${typeBadge} ${roleBadges}</td>
+      <td>${n.total}</td>
+      <td><div class="ent-co-list">${co || '<span style="color:#bbb;font-size:11px;">—</span>'}</div></td>
+      <td>${_buildSparkline(n.activity, yMin, yMax)}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.ent-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      const eid = row.dataset.eid;
+      if (e.ctrlKey || e.metaKey) {
+        if (selectedEntities.has(eid)) selectedEntities.delete(eid);
+        else selectedEntities.add(eid);
+      } else {
+        if (selectedEntities.size === 1 && selectedEntities.has(eid)) {
+          selectedEntities.clear();
+        } else {
+          selectedEntities.clear();
+          selectedEntities.add(eid);
+        }
+      }
+      state.filters.entities = new Set(selectedEntities);
+      state.page = 1;
+      entityClickRefresh = true;
+      refresh();
+    });
+  });
+}
+
+// ---- Body-level floating tooltip (escapes any stacking context) ----
+let _floatingTipEl;
+function _ensureFloatingTip() {
+  if (_floatingTipEl) return _floatingTipEl;
+  _floatingTipEl = document.createElement('div');
+  _floatingTipEl.className = 'floating-tip';
+  _floatingTipEl.style.cssText =
+    'position:fixed;display:none;background:#2c3e50;color:#fff;font-family:"IBM Plex Sans",sans-serif;' +
+    'font-size:12px;line-height:1.4;padding:8px 12px;border-radius:4px;max-width:320px;z-index:999999;' +
+    'pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.18);text-align:left;letter-spacing:0;';
+  document.body.appendChild(_floatingTipEl);
+  return _floatingTipEl;
+}
+function showFloatingTip(refEl, html) {
+  const tip = _ensureFloatingTip();
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  const r = refEl.getBoundingClientRect();
+  const tr = tip.getBoundingClientRect();
+  let left = r.left + r.width / 2 - tr.width / 2;
+  left = Math.max(8, Math.min(window.innerWidth - tr.width - 8, left));
+  let top = r.top - tr.height - 10;
+  if (top < 8) top = r.bottom + 10;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+function hideFloatingTip() {
+  if (_floatingTipEl) _floatingTipEl.style.display = 'none';
+}
+function bindInfoTips() {
+  document.querySelectorAll('.info-tip[data-tip]').forEach(el => {
+    if (el._tipBound) return;
+    el._tipBound = true;
+    const text = el.getAttribute('data-tip');
+    el.addEventListener('mouseenter', () => showFloatingTip(el, text));
+    el.addEventListener('mouseleave', hideFloatingTip);
+    el.addEventListener('focus', () => showFloatingTip(el, text));
+    el.addEventListener('blur', hideFloatingTip);
+  });
 }
 
 function renderEntityGraph(data) {
@@ -1787,38 +2086,6 @@ function renderEntityGraph(data) {
   });
 }
 
-function renderEntityTable(nodes) {
-  const tbody = document.querySelector('#entity-tbl tbody');
-  if (!tbody) return;
-  const sorted = [...nodes].sort((a, b) => b.incident_count - a.incident_count);
-  tbody.innerHTML = sorted.map(n =>
-    `<tr class="ent-row ${selectedEntities.has(n.id) ? 'ent-row--selected' : ''}" style="cursor:pointer;" data-eid="${n.id}">
-      <td><strong>${n.name}</strong><br><span class="ent-type">${n.entity_type}</span> <span class="ent-role ent-role--${n.role}">${n.role.replace('_', ' ')}</span></td>
-      <td>${n.incident_count}</td>
-    </tr>`
-  ).join('');
-  tbody.querySelectorAll('.ent-row').forEach(row => {
-    row.addEventListener('click', (e) => {
-      const eid = row.dataset.eid;
-      if (e.ctrlKey || e.metaKey) {
-        if (selectedEntities.has(eid)) selectedEntities.delete(eid);
-        else selectedEntities.add(eid);
-      } else {
-        if (selectedEntities.size === 1 && selectedEntities.has(eid)) {
-          selectedEntities.clear();
-        } else {
-          selectedEntities.clear();
-          selectedEntities.add(eid);
-        }
-      }
-      state.filters.entities = new Set(selectedEntities);
-      state.page = 1;
-      entityClickRefresh = true;
-      refresh();
-    });
-  });
-}
-
 // ---- Entity controls ----
 document.addEventListener("DOMContentLoaded", () => {
   const slider = document.getElementById("ent-min-slider");
@@ -1826,6 +2093,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const roleSelect = document.getElementById("ent-role-filter");
   const typeSelect = document.getElementById("ent-type-filter");
   const srcCheck = document.getElementById("ent-show-sources");
+
+  // View toggle: Chord / Network
+  document.querySelectorAll('.ent-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      document.querySelectorAll('.ent-view-btn').forEach(b => {
+        const active = b.dataset.view === view;
+        b.classList.toggle('ent-view-btn--active', active);
+        b.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      const chord = document.getElementById('entity-chord');
+      const graph = document.getElementById('entity-graph');
+      if (chord) chord.style.display = view === 'chord' ? '' : 'none';
+      if (graph) graph.style.display = view === 'network' ? '' : 'none';
+    });
+  });
 
   if (slider) slider.addEventListener("input", () => { valLabel.textContent = slider.value; renderEntityFiltered(); });
   if (roleSelect) roleSelect.addEventListener("change", () => renderEntityFiltered());
