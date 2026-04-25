@@ -229,7 +229,7 @@ function updatePillStates() {
 function redrawCharts() {
   if (!lastData) return;
   const d = lastData;
-  try { renderSankey(d.country_actor || [], d.stacked || []); } catch(e) {}
+  try { renderSankey(d.country_actor || [], d.stacked || [], d.sankey_node_counts || {}); } catch(e) {}
   try { renderVolumeChart(d.volume_over_time || []); } catch(e) {}
   try { renderMap(d.country_actor || [], d.country_meta || {}); } catch(e) {}
   try { renderStacked(d.stacked || []); } catch(e) {}
@@ -369,7 +369,7 @@ async function refresh() {
 
   renderApplied();
   updatePillStates();
-  try { renderSankey(data.country_actor || [], data.stacked || []); } catch(e) { console.error("Sankey:", e); }
+  try { renderSankey(data.country_actor || [], data.stacked || [], data.sankey_node_counts || {}); } catch(e) { console.error("Sankey:", e); }
   try { renderVolumeChart(data.volume_over_time || []); } catch(e) { console.error("VolumeChart:", e); }
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
   try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
@@ -435,7 +435,9 @@ function clearAll() {
 }
 
 // ========================================================================
-// VOLUME OVER TIME CHART (stacked bar by actor)
+// VOLUME OVER TIME CHART (stacked filled area by actor)
+// Incidents aren't discrete by calendar year — campaigns roll between years.
+// A stacked area reads that continuity better than discrete bars.
 // ========================================================================
 function renderVolumeChart(rows) {
   const el = d3.select("#volume-chart");
@@ -456,7 +458,9 @@ function renderVolumeChart(rows) {
   const svg = el.append("svg").attr("width", width).attr("height", height);
   const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Pivot data: consolidate pre-2014 into "Pre"
+  // Aggregate per-actor counts per year, dropping anything past CURRENT_YEAR
+  // (those tend to be future-dated artifacts) and bucketing pre-2010 into a
+  // single "Pre" lump that hangs off the left edge.
   const rawYears = Array.from(new Set(rows.map(d => d.year))).filter(y => y <= CURRENT_YEAR).sort((a, b) => a - b);
   const actors = Array.from(new Set(rows.map(d => d.actor))).sort();
   const lookup = {};
@@ -467,13 +471,18 @@ function renderVolumeChart(rows) {
 
   const hasPre = rawYears.some(y => y < 2010);
   const postYears = rawYears.filter(y => y >= 2010);
-  const years = hasPre ? ["Pre", ...postYears] : [...postYears];
+  // For an area chart x must be a continuous numeric scale; collapse Pre into
+  // a synthetic year value just left of the lowest real year.
+  const minYear = postYears.length ? postYears[0] : CURRENT_YEAR;
+  const preYearVal = minYear - 1;
+  const yearsForData = hasPre ? [preYearVal, ...postYears] : [...postYears];
 
-  // Build stack data
-  const stackData = years.map(yr => {
+  const stackData = yearsForData.map(yr => {
     const obj = { year: yr };
     actors.forEach(a => {
-      obj[a] = yr === "Pre" ? (lookup[`pre_${a}`] || 0) : (lookup[`${yr}_${a}`] || 0);
+      obj[a] = yr === preYearVal && hasPre
+        ? (lookup[`pre_${a}`] || 0)
+        : (lookup[`${yr}_${a}`] || 0);
     });
     return obj;
   });
@@ -481,61 +490,102 @@ function renderVolumeChart(rows) {
   const stack = d3.stack().keys(actors);
   const series = stack(stackData);
 
-  const x = d3.scaleBand().domain(years).range([0, innerW]).paddingInner(0.15);
+  const x = d3.scaleLinear()
+    .domain([yearsForData[0], yearsForData[yearsForData.length - 1]])
+    .range([0, innerW]);
   const yMax = d3.max(series, s => d3.max(s, d => d[1])) || 1;
   const y = d3.scaleLinear().domain([0, yMax]).nice().range([innerH, 0]);
 
-  // X axis
+  // X axis — show every other real year, "Pre" label for the synthetic point
+  const tickYears = yearsForData.filter(yr =>
+    (yr === preYearVal && hasPre) || (yr >= 2010 && yr % 2 === 1)
+  );
   const xAxis = g.append("g")
     .attr("transform", `translate(0,${innerH})`)
-    .call(d3.axisBottom(x).tickValues(years.filter(y => y === "Pre" || (typeof y === "number" && y % 2 === 1))).tickSize(0));
+    .call(d3.axisBottom(x).tickValues(tickYears).tickFormat(yr => (yr === preYearVal && hasPre) ? "Pre" : yr).tickSize(0));
   xAxis.selectAll("text").style("fill", "#5C6771").style("font-size", "12px");
-  xAxis.select(".domain").style("stroke", "rgba(255,255,255,0.1)");
+  xAxis.select(".domain").style("stroke", "rgba(0,0,0,0.1)");
 
-  // Y axis
+  // Y axis with subtle gridlines
   const yAxis = g.append("g")
     .call(d3.axisLeft(y).ticks(5).tickSize(-innerW));
   yAxis.selectAll("text").style("fill", "#5C6771").style("font-size", "12px");
   yAxis.select(".domain").remove();
-  yAxis.selectAll("line").style("stroke", "rgba(255,255,255,0.06)");
+  yAxis.selectAll("line").style("stroke", "rgba(0,0,0,0.05)");
 
-  // Bars
+  // Stacked filled area generator — monotone interpolation reads as smooth
+  // continuity without overshooting.
+  const area = d3.area()
+    .x(d => x(d.data.year))
+    .y0(d => y(d[0]))
+    .y1(d => y(d[1]))
+    .curve(d3.curveMonotoneX);
+
   series.forEach(s => {
     const actorName = s.key;
     const color = actorColor(actorName);
-    g.selectAll(`.vol-bar-${actorName.replace(/\s/g, "_")}`)
-      .data(s)
-      .enter()
-      .append("rect")
-      .attr("class", "vol-bar")
-      .attr("x", d => x(d.data.year))
-      .attr("y", d => y(d[1]))
-      .attr("width", x.bandwidth())
-      .attr("height", d => Math.max(0, y(d[0]) - y(d[1])))
+    g.append("path")
+      .datum(s)
+      .attr("class", "vol-area")
+      .attr("d", area)
       .attr("fill", color)
-      .attr("rx", 1)
-      .on("click", (_, d) => {
+      .attr("fill-opacity", 0.78)
+      .attr("stroke", color)
+      .attr("stroke-width", 1)
+      .attr("stroke-opacity", 0.9)
+      .style("cursor", "pointer")
+      .on("click", () => {
         toggleSet(state.filters.actors, actorName);
-        if (d.data.year === "Pre") {
-          state.filters.start = null;
-          state.filters.end = 2013;
-          $("#start-year").value = "";
-          $("#end-year").value = 2013;
-        } else {
-          state.filters.start = d.data.year;
-          state.filters.end = d.data.year;
-          $("#start-year").value = d.data.year;
-          $("#end-year").value = d.data.year;
-        }
         state.page = 1;
         refresh();
       })
-      .append("title").text(d => `${actorName} ${d.data.year}: ${d.data[actorName]}`);
+      .append("title").text(`${actorName}: ${s.reduce((acc, d) => acc + (d.data[actorName] || 0), 0)} incident-years`);
   });
 
-  // Visual break between pre-2014 and 2014+
-  if (hasPre && years.length > 1) {
-    const breakX = x("Pre") + x.bandwidth() + x.step() * 0.075;
+  // Per-year hover with stacked tooltip values. We capture the closest year
+  // by clientX and render a vertical guide + per-actor count list.
+  const tooltip = el.append("div")
+    .style("position", "absolute").style("pointer-events", "none").style("display", "none")
+    .style("background", "rgba(255,255,255,0.96)").style("border", "1px solid #ccc")
+    .style("border-radius", "4px").style("padding", "6px 10px").style("font-size", "12px")
+    .style("font-family", "'IBM Plex Sans', sans-serif").style("box-shadow", "0 2px 8px rgba(0,0,0,.12)")
+    .style("z-index", "100").style("white-space", "nowrap");
+  el.style("position", "relative");
+
+  const guide = g.append("line")
+    .attr("y1", 0).attr("y2", innerH)
+    .attr("stroke", "#37474F").attr("stroke-dasharray", "3,3").attr("stroke-width", 1)
+    .style("display", "none");
+
+  const overlay = g.append("rect")
+    .attr("width", innerW).attr("height", innerH).attr("fill", "transparent")
+    .style("cursor", "crosshair");
+
+  overlay.on("mousemove", function(event) {
+    const [mx] = d3.pointer(event, this);
+    const yr = Math.round(x.invert(mx));
+    const point = stackData.find(d => d.year === yr);
+    if (!point) { tooltip.style("display", "none"); guide.style("display", "none"); return; }
+    guide.attr("x1", x(yr)).attr("x2", x(yr)).style("display", "");
+    const yearLabel = (yr === preYearVal && hasPre) ? "Pre-2010" : yr;
+    const lines = actors
+      .map(a => ({ a, c: point[a] || 0 }))
+      .filter(d => d.c > 0)
+      .sort((a, b) => b.c - a.c)
+      .map(d => `<div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;background:${actorColor(d.a)};border-radius:50%;"></span>${d.a}: <strong>${d.c}</strong></div>`)
+      .join("");
+    tooltip.html(`<div style="font-weight:600;margin-bottom:3px;">${yearLabel}</div>${lines || '<div style="color:#999;">no activity</div>'}`)
+      .style("display", "block")
+      .style("left", (margin.left + x(yr) + 10) + "px")
+      .style("top", (margin.top + 10) + "px");
+  }).on("mouseleave", () => {
+    tooltip.style("display", "none");
+    guide.style("display", "none");
+  });
+
+  // Visual break between Pre and 2010+
+  if (hasPre && postYears.length) {
+    const breakX = (x(preYearVal) + x(postYears[0])) / 2;
     g.append("line")
       .attr("x1", breakX).attr("x2", breakX)
       .attr("y1", -4).attr("y2", innerH + 4)
@@ -564,7 +614,7 @@ function renderVolumeChart(rows) {
 // ========================================================================
 // SANKEY CHART (incident type -> actor -> country)
 // ========================================================================
-function renderSankey(countryRows, stackedRows) {
+function renderSankey(countryRows, stackedRows, nodeCounts = {}) {
   const el = d3.select("#sankey-chart");
   el.selectAll("*").remove();
 
@@ -624,9 +674,37 @@ function renderSankey(countryRows, stackedRows) {
     const country = topSet.has(r.country) ? r.country : (hasOthers ? "Others" : r.country);
     countryNodeTotals[country] = (countryNodeTotals[country] || 0) + r.count;
   });
-  toolsInData.forEach(t => { nodeMap[`tool:${t}`] = idx; nodes.push({ name: t, column: "tool", realCount: toolTotals[t] }); idx++; });
-  actorsInData.forEach(a => { nodeMap[`actor:${a}`] = idx; nodes.push({ name: a, column: "actor", realCount: actorTotals[a] }); idx++; });
-  countryNodes.forEach(c => { nodeMap[`country:${c}`] = idx; nodes.push({ name: c, column: "country", realCount: countryNodeTotals[c] || 0 }); idx++; });
+  // Prefer the unique-incident counts from the API (sum lines up with the
+  // headline filter total). Fall back to the multiplicative band totals if
+  // the API didn't ship the new field for some reason.
+  const uniqTool = nodeCounts.tool || {};
+  const uniqActor = nodeCounts.actor || {};
+  const uniqCountry = nodeCounts.country || {};
+  toolsInData.forEach(t => {
+    nodeMap[`tool:${t}`] = idx;
+    nodes.push({ name: t, column: "tool", realCount: uniqTool[t] != null ? uniqTool[t] : toolTotals[t] });
+    idx++;
+  });
+  actorsInData.forEach(a => {
+    nodeMap[`actor:${a}`] = idx;
+    nodes.push({ name: a, column: "actor", realCount: uniqActor[a] != null ? uniqActor[a] : actorTotals[a] });
+    idx++;
+  });
+  countryNodes.forEach(c => {
+    nodeMap[`country:${c}`] = idx;
+    // "Others" bucket has no single API key — sum the unique counts of the
+    // countries it absorbs. Top countries use their direct unique count.
+    let unique;
+    if (c === "Others") {
+      unique = sortedCountries
+        .slice(10)
+        .reduce((acc, [name]) => acc + (uniqCountry[name] || 0), 0);
+    } else {
+      unique = uniqCountry[c] != null ? uniqCountry[c] : (countryNodeTotals[c] || 0);
+    }
+    nodes.push({ name: c, column: "country", realCount: unique });
+    idx++;
+  });
 
   // Build links
   // Build raw links and then normalize so both sides of each actor balance

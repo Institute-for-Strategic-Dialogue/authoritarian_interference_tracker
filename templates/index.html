@@ -127,7 +127,7 @@
         <div class="card-title">
           VOLUME OVER TIME <span class="sub">by threat actor</span>
           <span class="info-tip" tabindex="0"
-                title="Each multi-year incident contributes once to every year it spans, per actor. Totals exceed unique incident counts by design — they show sustained activity, not just new onsets."
+                data-tip="Each multi-year incident contributes once to every year it spans, per actor. Totals exceed unique incident counts by design — they show sustained activity, not just new onsets."
                 aria-label="Counts info">i</span>
         </div>
         <div id="volume-chart"></div>
@@ -137,7 +137,7 @@
         <div class="card-title">
           INCIDENT FLOW <span class="sub">type &rarr; actor &rarr; target country</span>
           <span class="info-tip" tabindex="0"
-                title="Each incident is split across all of its types, actors, and target countries — a multi-target, multi-actor incident appears in every flow band that applies."
+                data-tip="Band thickness reflects activity (each incident counted once per type-actor-country path it touches). Labels under each node show unique incident count, so the headline number balances across columns."
                 aria-label="Counts info">i</span>
         </div>
         <div id="sankey-chart"></div>
@@ -149,7 +149,7 @@
       <div class="card-title" style="font-size:11px;margin-bottom:2px;">
         TACTICS &amp; TECHNIQUES <span class="sub">grouped by incident type, sized by frequency</span>
         <span class="info-tip" tabindex="0"
-              title="A TTP is the specific tradecraft used (e.g. 'inauthentic amplification'). Filtering by a TTP can return more incidents than the broader type it lives under, because some incidents carry the TTP without the matching type label."
+              data-tip="A TTP is the specific tradecraft used (e.g. 'inauthentic amplification'). Each TTP is grouped under its parent incident type. The data layer keeps the parent type attached whenever a TTP is set."
               aria-label="Counts info">i</span>
       </div>
       <div id="ttp-treemap"></div>

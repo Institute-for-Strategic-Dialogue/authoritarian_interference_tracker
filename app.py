@@ -402,6 +402,28 @@ def api_incidents():
     country_rows = [{"country": c, "actor": a, "count": cnt}
                     for c, bucket in cxa.items() for a, cnt in bucket.items()]
 
+    # --- Unique-incident counts per Sankey node label ---
+    # The Sankey link weights above multiply across (type x actor x country)
+    # combinations, which is right for visual proportion. But the labels
+    # under each node should report unique-incident counts so they line up
+    # with the headline filter total. Build those buckets here, deduping
+    # per incident.
+    unique_actor: dict = defaultdict(int)
+    unique_tool: dict = defaultdict(int)
+    unique_country: dict = defaultdict(int)
+    for inc in filtered:
+        for a in set(inc["actors"] or ["Unknown"]):
+            unique_actor[a] += 1
+        for t in set(inc["tools"] or ["Unspecified"]):
+            unique_tool[t] += 1
+        for c in set(inc["countries"] or []):
+            unique_country[c] += 1
+    sankey_node_counts = {
+        "actor": dict(unique_actor),
+        "tool": dict(unique_tool),
+        "country": dict(unique_country),
+    }
+
     # Pagination
     total = len(filtered)
     start_idx = (page - 1) * page_size
@@ -417,6 +439,7 @@ def api_incidents():
         "ttp_by_type": ttp_rows,
         "country_actor": country_rows,
         "country_meta": COUNTRY_CENTROIDS,
+        "sankey_node_counts": sankey_node_counts,
     })
 
 
