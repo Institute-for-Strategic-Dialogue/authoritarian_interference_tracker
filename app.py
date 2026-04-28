@@ -42,6 +42,9 @@ ACTOR_DISPLAY = {
 }
 
 COUNTRY_NAMES = {
+    # Multilateral target — applied when an operation targets UN, EU,
+    # NATO, or G7 as institutions rather than a single member state.
+    "MULTILATERAL": "Multilateral (UN/EU/NATO/G7)",
     "AL": "Albania", "AT": "Austria", "AU": "Australia", "BA": "Bosnia and Herzegovina",
     "BE": "Belgium", "BG": "Bulgaria", "BY": "Belarus", "CA": "Canada",
     "CH": "Switzerland", "CY": "Cyprus", "CZ": "Czech Republic", "DE": "Germany",
