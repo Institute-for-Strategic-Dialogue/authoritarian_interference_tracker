@@ -33,7 +33,6 @@ TOOL_DISPLAY = {
     "information_manipulation": "Information Operations",
     "malign_finance": "Malign Finance",
     "civil_society_subversion": "Political & Civic Subversion",
-    "economic_coercion": "Economic Coercion",
 }
 
 ACTOR_DISPLAY = {
@@ -82,8 +81,6 @@ _TTP_PARENT = {
     "transnational repression": "Political & Civic Subversion",
     "infiltration": "Political & Civic Subversion",
     "front organization": "Political & Civic Subversion",
-    "energy coercion": "Economic Coercion", "trade coercion": "Economic Coercion",
-    "debt leverage": "Economic Coercion",
 }
 
 COUNTRY_CENTROIDS = {
