@@ -32,10 +32,10 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 // ---- Incident type definitions ----
 const INCIDENT_TYPES = [
-  { name: "Cyber Operations",        color: "#0068B2" },  // ISD Blue
-  { name: "Kinetic Operations",      color: "#C7074D" },  // ISD Red
+  { name: "Cyber Operations",        color: "#1F2E47" },  // Deep navy
+  { name: "Kinetic Operations",      color: "#8B2C3F" },  // Oxblood
   { name: "Information Operations",  color: "#D4A843" },  // Warm gold
-  { name: "Malign Finance",          color: "#3A8A6E" },  // Muted green
+  { name: "Malign Finance",          color: "#E76863" },  // ISD Coral
   { name: "Political & Civic Subversion",color: "#4C4193" }   // ISD Purple
 ];
 const INCIDENT_TYPE_MAP = {};
