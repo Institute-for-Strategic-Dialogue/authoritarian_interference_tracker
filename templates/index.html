@@ -162,6 +162,13 @@
     <section class="card mapcard">
       <div class="card-title">GLOBAL DISTRIBUTION <span class="sub">by actor share</span></div>
       <div id="map"></div>
+      <!-- Stacked-segment bar showing the EU/NATO/Other split of
+           MULTILATERAL-tagged incidents. Hidden when there are none in
+           the current filter set. Attaches flush to the map. -->
+      <div id="multilateral-bar" class="multilateral-bar" hidden>
+        <div class="multilateral-bar-label">EU, NATO, &amp; Other Multilateral Organizations</div>
+        <div class="multilateral-bar-track" id="multilateral-bar-track"></div>
+      </div>
     </section>
 
     <!-- 6. Entity relationships -->

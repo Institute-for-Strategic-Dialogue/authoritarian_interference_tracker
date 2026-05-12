@@ -2,6 +2,7 @@
 
 import os
 import random
+import re
 import time
 from collections import Counter, defaultdict
 from datetime import datetime, date
@@ -43,7 +44,7 @@ ACTOR_DISPLAY = {
 COUNTRY_NAMES = {
     # Multilateral target — applied when an operation targets UN, EU,
     # NATO, or G7 as institutions rather than a single member state.
-    "MULTILATERAL": "Multilateral (UN/EU/NATO/G7)",
+    "MULTILATERAL": "EU, NATO, & Other Multilateral Organizations",
     "AL": "Albania", "AT": "Austria", "AU": "Australia", "BA": "Bosnia and Herzegovina",
     "BE": "Belgium", "BG": "Bulgaria", "BY": "Belarus", "CA": "Canada",
     "CH": "Switzerland", "CY": "Cyprus", "CZ": "Czech Republic", "DE": "Germany",
@@ -506,6 +507,29 @@ def api_incidents():
         "country": dict(unique_country),
     }
 
+    # --- Multilateral-target breakdown -----------------------------------
+    # MULTILATERAL incidents get bucketed into EU / NATO / Other using a
+    # keyword scan over title+summary. Precedence is EU > NATO > Other so
+    # an incident is counted exactly once. The frontend hides the bar when
+    # the total is zero (after current filters).
+    multilateral_buckets = {"EU": 0, "NATO": 0, "Other": 0}
+    eu_re = re.compile(
+        r"\b(EU|European Union|European Parliament|European Commission|"
+        r"European Council|Europol|EEAS)\b",
+        re.IGNORECASE,
+    )
+    nato_re = re.compile(r"\b(NATO|Atlantic Alliance|Allied Command)\b", re.IGNORECASE)
+    for inc in filtered:
+        if "MULTILATERAL" not in (inc.get("country_codes") or []):
+            continue
+        text = f"{inc.get('title') or ''}  {inc.get('summary') or ''}"
+        if eu_re.search(text):
+            multilateral_buckets["EU"] += 1
+        elif nato_re.search(text):
+            multilateral_buckets["NATO"] += 1
+        else:
+            multilateral_buckets["Other"] += 1
+
     # Pagination
     total = len(filtered)
     start_idx = (page - 1) * page_size
@@ -524,6 +548,7 @@ def api_incidents():
         "sankey_node_counts": sankey_node_counts,
         "entity_chord": chord_pairs_out,
         "entity_table": entity_rows,
+        "multilateral_breakdown": multilateral_buckets,
         "data_last_updated": _cache.get("last_updated"),
     })
 

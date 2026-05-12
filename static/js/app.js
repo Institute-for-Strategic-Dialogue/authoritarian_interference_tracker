@@ -231,6 +231,7 @@ function redrawCharts() {
   try { renderSankey(d.country_actor || [], d.stacked || [], d.sankey_node_counts || {}); } catch(e) {}
   try { renderVolumeChart(d.volume_over_time || []); } catch(e) {}
   try { renderMap(d.country_actor || [], d.country_meta || {}); } catch(e) {}
+  try { renderMultilateralBar(d.multilateral_breakdown || {}); } catch(e) {}
   try { renderStacked(d.stacked || []); } catch(e) {}
   try { renderTtpTreemap(d.ttp_by_type || {}); } catch(e) {}
   try { renderEntityFiltered(); } catch(e) {}
@@ -382,6 +383,7 @@ async function refresh() {
   try { renderSankey(data.country_actor || [], data.stacked || [], data.sankey_node_counts || {}); } catch(e) { console.error("Sankey:", e); }
   try { renderVolumeChart(data.volume_over_time || []); } catch(e) { console.error("VolumeChart:", e); }
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
+  try { renderMultilateralBar(data.multilateral_breakdown || {}); } catch(e) { console.error("MultilateralBar:", e); }
   try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
   try { renderTtpTreemap(data.ttp_by_type || {}); } catch(e) { console.error("TtpTreemap:", e); }
   try { renderList(data.incidents || []); } catch(e) { console.error("List:", e); }
@@ -1079,6 +1081,43 @@ function renderMap(countryRows, countryMeta) {
     marker.bindTooltip(`<strong>${country}</strong><br>${tot} incidents`, { direction: "top", offset: [0, -anchor] });
     clusterLayer.addLayer(marker);
   }
+}
+
+// Renders the EU / NATO / Other stacked-segment bar that hangs off the
+// bottom of the map. `breakdown` is { EU: n, NATO: m, Other: k }. Hidden
+// when total is zero. Segments shorter than ~7% of the bar drop their
+// label text to avoid overlap.
+function renderMultilateralBar(breakdown) {
+  const wrap = document.getElementById("multilateral-bar");
+  const track = document.getElementById("multilateral-bar-track");
+  if (!wrap || !track) return;
+
+  const segments = [
+    { key: "EU",    color: "#0068B2" },
+    { key: "NATO",  color: "#8B2C3F" },
+    { key: "Other", color: "#5C6771" },
+  ];
+  const total = segments.reduce((s, seg) => s + (breakdown[seg.key] || 0), 0);
+  if (!total) {
+    wrap.hidden = true;
+    track.innerHTML = "";
+    return;
+  }
+
+  wrap.hidden = false;
+  track.innerHTML = segments
+    .map(seg => {
+      const n = breakdown[seg.key] || 0;
+      if (!n) return "";
+      const pct = (n / total) * 100;
+      const showName = pct >= 7;
+      return `<div class="multilateral-bar-seg"
+                style="flex: ${n} 1 0; background:${seg.color};"
+                title="${seg.key}: ${n} incident${n === 1 ? "" : "s"}">
+              <span class="seg-count">${n}</span>${showName ? `<span class="seg-name">${seg.key}</span>` : ""}
+            </div>`;
+    })
+    .join("");
 }
 
 function calculateDonutRadius(total) {
