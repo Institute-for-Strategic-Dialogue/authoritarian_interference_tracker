@@ -335,22 +335,20 @@ def _filter_incidents(incidents, filters):
         if filters.get("tools"):
             if not set(inc["tools"]).intersection(filters["tools"]):
                 continue
-        # Date filter uses strict containment: an incident is included only
-        # when its full [start_year, end_year] window fits inside the
-        # filter window. Ongoing incidents (end_year is None) are treated
-        # as extending forever and therefore fail any explicit end-year
-        # constraint. This matches the user's mental model: filtering for
-        # "2024" shows incidents that began and ended in 2024, not
-        # multi-year campaigns that happened to touch 2024.
+        # Date filter uses window-overlap semantics: include an incident
+        # whenever its [start_year, end_year] window overlaps with the
+        # filter window at all. So a 2013-2015 incident matches a
+        # 2014-2016 filter (it was active in 2014 and 2015), and an
+        # ongoing 2010- incident matches every filter window from 2010
+        # onward. Ongoing incidents (end_year is None) are treated as
+        # extending forever — they pass the start-bound check by default.
         if filters.get("start"):
-            if (inc["start_year"] or 9999) < filters["start"]:
-                continue
-        if filters.get("end"):
-            if (inc["start_year"] or 0) > filters["end"]:
-                continue
             eff_end = inc.get("end_year")
-            if eff_end is None or eff_end > filters["end"]:
-                continue
+            if eff_end is not None and eff_end < filters["start"]:
+                continue  # incident ended before window opens
+        if filters.get("end"):
+            if (inc["start_year"] or 9999) > filters["end"]:
+                continue  # incident hadn't started by the time window closes
         if filters.get("region"):
             region_codes = set(REGION_GROUPS.get(filters["region"], []))
             if not set(inc.get("country_codes", [])).intersection(region_codes):
