@@ -600,6 +600,11 @@ def methodology():
     return render_template("methodology.html")
 
 
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
 # ---------------------------------------------------------------------------
 # Error pages: each HTTP status gets a quip pool themed to the tracker's
 # incident types — 500/502/503 lean cyber_operations (destructive attack,

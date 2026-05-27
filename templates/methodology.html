@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Methodology · Authoritarian Interference Tracker</title>
+  <title>Methodology &middot; Authoritarian Interference Tracker</title>
   <meta name="description" content="How the Authoritarian Interference Tracker collects, classifies, and reviews incidents.">
   <link rel="canonical" href="{{ request.url }}">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -18,14 +18,23 @@
     .methodology-body h3 { margin-top: 1.5rem; font-size: 16px; color: #37474F; }
     .methodology-body p { margin: .75rem 0; }
     .methodology-body .lede { font-size: 17px; color: #5C6771; border-left: 3px solid #0068B2; padding-left: 1rem; }
-    .methodology-body dl { margin: 1rem 0; }
-    .methodology-body dt { font-weight: 600; margin-top: .75rem; }
-    .methodology-body dd { margin: .15rem 0 0 1rem; color: #5C6771; }
+    .methodology-body .disclaimer {
+      background: #fff7e6; border-left: 3px solid #D4A843;
+      padding: 1rem 1.25rem; margin: 1.5rem 0 2rem; font-size: 14px; color: #5C4A1F;
+    }
+    .methodology-body .examples { margin: .35rem 0 .35rem 1rem; color: #5C6771; }
+    .methodology-body ul { margin: .5rem 0 .75rem 1.25rem; padding: 0; }
+    .methodology-body li { margin: .2rem 0; }
     .methodology-body code { background: rgba(0,0,0,.04); padding: 1px 6px; border-radius: 3px; font-family: 'Space Mono', monospace; font-size: 13px; }
     .methodology-body .back-link {
       display: inline-block; margin-top: 3rem; color: #0068B2; text-decoration: none;
       border-bottom: 1px solid currentColor; padding-bottom: 1px;
     }
+    .methodology-body .see-also {
+      margin-top: 2rem; padding: 1rem 1.25rem; background: #f4f7fa;
+      border-radius: 4px; font-size: 14px; color: #37474F;
+    }
+    .methodology-body .see-also a { color: #0068B2; }
   </style>
 </head>
 <body>
@@ -42,115 +51,193 @@
 
   <main class="methodology-body">
     <h2>Methodology</h2>
-    <p class="lede">
-      This catalog tracks documented incidents of foreign authoritarian state
-      interference against democratic states. Each entry aggregates reporting
-      from government statements, security-firm analysis, court documents,
-      and credible journalism into a single structured record.
+
+    <div class="disclaimer">
+      <strong>Disclaimer.</strong> From 2017 to 2025, the Alliance for Securing Democracy (ASD),
+      an initiative that was housed at the German Marshall Fund of the United States,
+      maintained the Authoritarian Interference Tracker. Effective January 2026, ASD merged with
+      the Institute for Strategic Dialogue-United States (ISD-US). As such, the Authoritarian
+      Interference Tracker is now an ISD-US tool. We have revised the Tracker's methodology,
+      added a new threat actor (Iran), and overhauled the preexisting dataset. Currently,
+      the Tracker's dataset is updated from 2022 to the present day; we are still working to
+      backfill gaps in the dataset from 2014 through 2021.
+    </div>
+
+    <h2>The Authoritarian Interference Tracker and Its Data</h2>
+    <p>
+      The Authoritarian Interference Tracker (AIT) monitors incidents of hybrid threats
+      carried out by state-sponsored actors from Russia, China, and Iran. We define
+      state-sponsored actors as: a person, group, or entity that conducts coordinated
+      activity on behalf of, under the direction of, or in material alignment with the
+      Russian, Chinese, or Iranian governments.
+    </p>
+    <p>
+      The AIT catalogs incidents according to five incident types &mdash; cyber operations,
+      kinetic operations, information operations, malign finance, and political and
+      civic subversion &mdash; that state-sponsored actors use as asymmetric tools of state
+      power and influence to interfere in a target country's democratic institutions,
+      processes, and societies. Each incident includes a list of tactics, techniques,
+      and procedures (TTPs) that further delineate how threat actors conduct interference
+      operations. In some incidents, threat actors deploy multiple tactics and/or target
+      multiple countries, highlighting how these threat actors use various tactics
+      simultaneously and against multiple targets.
+    </p>
+    <p>
+      The AIT monitors incidents targeting countries within the transatlantic community,
+      which we define as: members of the European Union, NATO, the European Free Trade
+      Association, EU candidate countries, and countries that have officially signaled
+      intent to apply for EU membership. This final category adds Kosovo and Armenia to
+      our dataset. The AIT tracks interference campaigns affecting these countries since
+      February 2014, when Russia illegally annexed Crimea. Although several countries
+      faced hybrid threats before Russia's annexation of Crimea, we recognize this as
+      a key inflection point in Western recognition of the phenomenon. Since 2014, FIMI
+      and hybrid threats targeting democracies have also become more commonplace, as has
+      open-source reporting of such activity by governments and media sources.
+    </p>
+    <p>
+      Despite being a significant target of hybrid threats, Ukraine is not included in our
+      dataset. We acknowledge that Ukraine has been ground zero for hybrid activity even
+      before Russia's full-scale invasion in 2022. However, the current kinetic war makes
+      it exceedingly difficult to accurately document every hybrid incident within the
+      country. We therefore have decided, for the time being, to exclude Ukraine from our
+      dataset.
+    </p>
+    <p>
+      We remain engaged in expanding our data to include other threat actors and target
+      countries. Specifically, we aim to soon begin tracking all members of the Five Eyes
+      intelligence alliance, adding Australia and New Zealand.
+    </p>
+    <p>
+      This dataset, while comprehensive, is not an exhaustive list of examples of hybrid
+      threats in the target countries, but functions as a catalogue of incidents from
+      which to draw conclusions, highlight vulnerabilities in target countries, and surface
+      leads for further investigation. We also acknowledge that more countries engage in
+      foreign interference than the threat actors we track and that targeted countries have
+      different perceptions of which countries constitute purveyors of hybrid threats.
+      Furthermore, due to the covert or plausibly deniable nature of many types of hybrid
+      operations, identifying clear and direct attribution is often difficult. Consequently,
+      the AIT is limited to incidents that are publicly reported and credibly attributed to
+      the governments of Russia, China, and Iran and their proxies. Credible public
+      attribution includes trusted governments, multilateral organizations, research
+      institutes, private companies, or news outlets that have named Russia, China, or Iran
+      as responsible or likely responsible for an incident. We also acknowledge that many
+      incidents, namely cyber operations and information operations, happen every day and
+      remain unreported. Because we rely on trusted sources to identify when these attacks
+      occur, there are almost certainly incidents that we have missed or that we are unable
+      to include. We require at least two sources of attribution to include an incident in
+      the AIT.
     </p>
 
-    <h2>Scope</h2>
-    <p>
-      The tracker focuses on operations attributed to five state actors:
-      Russia, China, Iran, North Korea, and Belarus. An incident qualifies
-      when reporting attributes an operation to one of these state actors
-      and that operation targets a democratic country, its institutions,
-      its citizens abroad, or its infrastructure.
-    </p>
-    <p>
-      We group interference into six operational types:
-    </p>
-    <dl>
-      <dt>Cyber Operations</dt>
-      <dd>Network intrusions, DDoS, data theft, destructive attacks, supply chain compromise.</dd>
-      <dt>Kinetic Operations</dt>
-      <dd>Sabotage, assassination, surveillance, jamming.</dd>
-      <dt>Information Operations</dt>
-      <dd>Inauthentic amplification, fabricated content, hack-and-leak, impersonation.</dd>
-      <dt>Malign Finance</dt>
-      <dd>Covert funding, sanctions evasion, corruption.</dd>
-      <dt>Political &amp; Civic Subversion</dt>
-      <dd>Agent recruitment, transnational repression, infiltration, front organizations.</dd>
-    </dl>
+    <h2>Incident Types</h2>
 
-    <h2>Pipeline</h2>
-    <h3>1. Collection</h3>
+    <h3>Cyber Operations</h3>
     <p>
-      A feed manager polls RSS feeds, Google News queries, the GDELT Global
-      Knowledge Graph, and OCCRP Aleph on rolling intervals. Article bodies
-      are extracted directly from publishers where possible (Google News
-      redirects are unwrapped so the real article is retrieved).
+      The probing or penetration of computer networks or connected systems and devices to
+      disrupt, manipulate, or damage critical infrastructure or to erode confidence in
+      democratic institutions or processes.
+    </p>
+    <p class="examples">
+      <em>Examples:</em> Russia-backed hackers taking down websites related to government
+      institutions, political candidates, or election procedures; and Iran's Islamic
+      Revolutionary Guard Corps breaching and gaining control of a remote water station at
+      a facility in Pennsylvania.
     </p>
 
-    <h3>2. Classification</h3>
+    <h3>Kinetic Operations</h3>
     <p>
-      Each collected article is classified by an LLM (Claude Haiku) as
-      relevant or irrelevant to the scope above, with a confidence score
-      and initial threat-actor / incident-type labels. Irrelevant articles
-      are retained for a 90-day audit window and then purged.
+      The deliberate use of &mdash; or credible threat to use &mdash; physical violence and/or
+      physically disruptive actions to undermine security, damage confidence in democratic
+      governance, and/or destabilize democratic society.
+    </p>
+    <p class="examples">
+      <em>Examples:</em> Russian intelligence using proxies to sabotage critical
+      infrastructure, including railway lines and air transport; and Iran enlisting criminal
+      groups for murder-for-hire plots against dissidents or Jews.
     </p>
 
-    <h3>3. Grafting and Generation</h3>
+    <h3>Information Operations</h3>
     <p>
-      Relevant articles pass through a grafting stage: each is compared
-      against existing incidents from the last two weeks, and if a match is
-      confirmed by the LLM it's attached as an additional source on that
-      incident. Articles with no match flow to generation, which clusters
-      them by embedding similarity and creates new incident records via
-      Claude Sonnet. A lightweight post-generation dedup pass merges
-      close duplicates automatically.
+      The coordinated, and often covert, use of actions employed to deliberately manipulate
+      information environments and influence public debate, including intentionally
+      spreading or amplifying information that is false, misleading, or distorted, and/or
+      engaging in deceptive practices such as masking or misrepresenting the provenance or
+      intent of information and/or intentionally suppressing information.
+    </p>
+    <p class="examples">
+      <em>Examples:</em> Russia-linked networks fabricating evidence of election fraud, such
+      as in the United States and Germany; and foreign state-sponsored groups employing bot
+      networks or fabricating websites impersonating local media to disseminate false
+      information or propaganda.
     </p>
 
-    <h3>4. Review</h3>
+    <h3>Malign Finance</h3>
     <p>
-      Every generated incident lands in a pending-review queue and is
-      triaged by an analyst before publication. Analysts can approve,
-      defer, reject, or merge incidents. Only incidents in the
-      <code>approved</code> state appear on this public site.
+      The illicit funding of foreign political parties, candidates, campaigns, or other
+      influential individuals or entities, often through covert or nontransparent structures
+      designed to obfuscate ties to a nation-state or its proxies.
+    </p>
+    <p class="examples">
+      <em>Examples:</em> Russia bypassing sanctions by funneling money to shell companies;
+      and foreign operatives attempting to influence policy or elections via bribery or
+      vote buying.
     </p>
 
-    <h2>Confidence and attribution</h2>
+    <h3>Political and Civic Subversion</h3>
     <p>
-      Each incident carries a confidence assessment (<code>high</code>,
-      <code>medium</code>, <code>low</code>) reflecting the strength of the
-      attribution evidence at the time of generation. A high confidence
-      mark generally requires a government statement, indictment, or a
-      corroborated security-firm analysis; lower confidence indicates
-      single-source reporting or unresolved attribution.
+      The hijacking, instrumentalization, or co-opting of social movements, political
+      parties, politicians, advocacy groups, or other civil society or political entities
+      through non-transparent or seditious means to amplify political and social cleavages,
+      target minority or diaspora groups, influence political decisions, or otherwise divide
+      target societies.
     </p>
-    <p>
-      Attribution is recorded at the state level (e.g., <em>russia</em>) rather
-      than at the sub-unit level (e.g., GRU, APT28). Named sub-units and
-      operators surface as <strong>entities</strong> on the incident record instead.
-    </p>
-
-    <h2>Timeline semantics</h2>
-    <p>
-      Incidents show a single year when they began and concluded in the
-      same year. A range ("2022 — 2024") indicates a multi-year campaign.
-      "Ongoing" only appears when no end date has been established — a
-      running disinformation operation, an unresolved sanctions regime,
-      or an active infrastructure compromise. Year-over-year volume
-      charts count each active year for multi-year campaigns, so totals
-      reflect actual sustained activity rather than just new onsets.
+    <p class="examples">
+      <em>Examples:</em> Chinese and Iranian transnational repression of diaspora groups
+      abroad; Russia's financing of protests, political parties, or non-governmental
+      organizations; or government officials working as foreign agents.
     </p>
 
-    <h2>Caveats</h2>
+    <h2>A Note on Espionage</h2>
     <p>
-      The catalog is a secondary source — every record points back to the
-      primary reporting that informed it. Dates reflect the earliest
-      date mentioned in source reporting and may shift as new information
-      surfaces. Attribution inherits the strength of its primary sources;
-      when governments disagree or reporters dispute a claim, the incident
-      reflects the preponderance of credible reporting and is flagged for
-      review when new conflicting evidence appears.
+      Authoritarian regimes' intensifying hybrid warfare against democracies has brought
+      about an acceleration of traditional espionage tactics. This is seen most clearly in
+      Russia's recruitment of citizens across Europe, including through non-transparent
+      means and the use of commercial messaging services, to spy on military installations
+      or share sensitive information about their countries' national security, often for
+      pay in cryptocurrency. Without a doubt, these incidents shed light on the bigger
+      picture of accelerating authoritarian assault against democracies. However, they are
+      only included in the AIT if they meet the threshold of one or more of our incident
+      types and were deliberately in service of undermining a target country's democracy.
+    </p>
+    <p class="examples"><em>Examples:</em></p>
+    <ul>
+      <li>Lithuania charges 13 in Russian intelligence plot to murder two activists</li>
+      <li>Iran tasks Danish national with spying on Berlin's Jewish community for potential attack</li>
+    </ul>
+
+    <h2>Data Collection and a Note on AI</h2>
+    <p>
+      AIT data is drawn from open-source reporting across government, media, and private-sector
+      sources in multiple languages. Automated systems continuously poll these sources for new
+      material, and AI models score each article for relevance, attribution, and incident type.
+      Articles covering the same event are consolidated into a single structured record capturing
+      threat actors, targets, timeline, tactics, and named entities, with close duplicates merged
+      automatically before review.
     </p>
     <p>
-      If you believe an incident is mischaracterized or missing, email
-      <a href="mailto:info@isdglobal.org">info@isdglobal.org</a>.
+      Every candidate incident then enters a two-stage human review &mdash; an editor triages
+      (approving, deferring, archiving as out of scope, or rejecting) and a reviewer confirms
+      publication. Only incidents that clear both stages appear on the public tracker.
     </p>
 
-    <a class="back-link" href="/">← Back to the tracker</a>
+    <div class="see-also">
+      For details on data subjects, lawful bases, retention, and the third-party services
+      involved in the pipeline, see our
+      <a href="/privacy">Privacy &amp; Data Notice</a>. If you believe an incident is
+      mischaracterized or you are named in an incident and wish to request correction,
+      email <a href="mailto:info@isdglobal.org?subject=AIT%20incident%20correction">info@isdglobal.org</a>.
+    </div>
+
+    <a class="back-link" href="/">&larr; Back to the tracker</a>
   </main>
 </body>
 </html>
