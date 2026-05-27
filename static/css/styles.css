@@ -441,15 +441,37 @@ body {
   background: #ececec;
 }
 .multilateral-bar-seg {
+  position: relative;
+  display: flex;          /* the inner flex stack carries actor sub-segments */
+  flex-direction: row;
+  min-width: 0;
+  cursor: pointer;
+  transition: filter 150ms, box-shadow 150ms;
+  border-right: 2px solid var(--surface-paper);
+}
+.multilateral-bar-seg:last-child { border-right: 0; }
+.multilateral-bar-seg:hover { filter: brightness(1.08); }
+.multilateral-bar-seg--selected {
+  box-shadow: inset 0 0 0 2px var(--surface-ink);
+  filter: brightness(1.05);
+}
+/* Each actor's slice within a group. Pure colored fill — no padding. */
+.multilateral-bar-sub {
+  height: 100%;
+  min-width: 0;
+}
+/* Section label sits on top of the colored stack. pointer-events: none so
+   clicks reach the segment underneath. */
+.multilateral-bar-label-overlay {
+  position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 12px; font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  pointer-events: none;
   padding: 0 .35rem; white-space: nowrap; overflow: hidden;
-  min-width: 0;
-  transition: filter 150ms;
 }
-.multilateral-bar-seg:hover { filter: brightness(1.08); }
-.multilateral-bar-seg .seg-count { font-variant-numeric: tabular-nums; }
-.multilateral-bar-seg .seg-name { margin-left: .3rem; opacity: .85; font-weight: 500; }
+.multilateral-bar-label-overlay .seg-count { font-variant-numeric: tabular-nums; }
+.multilateral-bar-label-overlay .seg-name { margin-left: .3rem; opacity: .9; font-weight: 500; }
 
 /* ---- Stacked bar ---- */
 .stacked-section #stackedbar { padding: .75rem; min-height: 300px; }

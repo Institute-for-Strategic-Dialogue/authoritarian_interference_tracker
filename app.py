@@ -261,6 +261,29 @@ def _year_range(start_year, end_year):
     return list(range(s, e + 1))
 
 
+# Regexes for the EU / NATO multilateral classification. EU keywords win
+# when an incident matches both — the body's precedence is EU > NATO > Other.
+_MULTI_EU_RE = re.compile(
+    r"\b(EU|European Union|European Parliament|European Commission|"
+    r"European Council|Europol|EEAS)\b",
+    re.IGNORECASE,
+)
+_MULTI_NATO_RE = re.compile(r"\b(NATO|Atlantic Alliance|Allied Command)\b", re.IGNORECASE)
+
+
+def _multilateral_group(inc) -> str | None:
+    """Return 'EU', 'NATO', or 'Other' for a MULTILATERAL-tagged incident,
+    None for incidents not tagged MULTILATERAL."""
+    if "MULTILATERAL" not in (inc.get("country_codes") or []):
+        return None
+    text = f"{inc.get('title') or ''}  {inc.get('summary') or ''}"
+    if _MULTI_EU_RE.search(text):
+        return "EU"
+    if _MULTI_NATO_RE.search(text):
+        return "NATO"
+    return "Other"
+
+
 def _parse_search_query(q: str):
     """Parse a Google-style search string into AND/OR/NOT groups.
 
@@ -353,6 +376,12 @@ def _filter_incidents(incidents, filters):
             region_codes = set(REGION_GROUPS.get(filters["region"], []))
             if not set(inc.get("country_codes", [])).intersection(region_codes):
                 continue
+        if filters.get("mgroup"):
+            # mgroup restricts to MULTILATERAL incidents in one of EU/NATO/Other.
+            # Non-MULTILATERAL incidents (country_codes lacks "MULTILATERAL") are
+            # always excluded once this filter is set.
+            if _multilateral_group(inc) != filters["mgroup"]:
+                continue
         out.append(inc)
     return out
 
@@ -427,6 +456,7 @@ def api_incidents():
         "ttp": request.args.get("ttp", "").strip() or None,
         "q": request.args.get("q", "").strip() or None,
         "region": request.args.get("region", "").strip() or None,
+        "mgroup": request.args.get("mgroup", "").strip() or None,
     }
 
     page = max(1, int(request.args.get("page", 1)))
@@ -578,25 +608,23 @@ def api_incidents():
     # --- Multilateral-target breakdown -----------------------------------
     # MULTILATERAL incidents get bucketed into EU / NATO / Other using a
     # keyword scan over title+summary. Precedence is EU > NATO > Other so
-    # an incident is counted exactly once. The frontend hides the bar when
-    # the total is zero (after current filters).
-    multilateral_buckets = {"EU": 0, "NATO": 0, "Other": 0}
-    eu_re = re.compile(
-        r"\b(EU|European Union|European Parliament|European Commission|"
-        r"European Council|Europol|EEAS)\b",
-        re.IGNORECASE,
-    )
-    nato_re = re.compile(r"\b(NATO|Atlantic Alliance|Allied Command)\b", re.IGNORECASE)
+    # an incident is counted exactly once. Each bucket carries a per-actor
+    # subcount so the frontend can render an actor-colored stacked bar.
+    multilateral_buckets = {
+        "EU": {"_total": 0},
+        "NATO": {"_total": 0},
+        "Other": {"_total": 0},
+    }
     for inc in filtered:
         if "MULTILATERAL" not in (inc.get("country_codes") or []):
             continue
-        text = f"{inc.get('title') or ''}  {inc.get('summary') or ''}"
-        if eu_re.search(text):
-            multilateral_buckets["EU"] += 1
-        elif nato_re.search(text):
-            multilateral_buckets["NATO"] += 1
-        else:
-            multilateral_buckets["Other"] += 1
+        group = _multilateral_group(inc)
+        if not group:
+            continue
+        bucket = multilateral_buckets[group]
+        bucket["_total"] += 1
+        for actor in (inc.get("actors") or ["Unknown"]):
+            bucket[actor] = bucket.get(actor, 0) + 1
 
     # Pagination
     total = len(filtered)
@@ -993,6 +1021,7 @@ def _parse_export_filters():
         "ttp": request.args.get("ttp", "").strip() or None,
         "q": request.args.get("q", "").strip() or None,
         "region": request.args.get("region", "").strip() or None,
+        "mgroup": request.args.get("mgroup", "").strip() or None,
     }
 
 

@@ -22,7 +22,8 @@ const state = {
     tools: new Set(),
     entities: new Set(),
     ttp: "",
-    region: ""
+    region: "",
+    mgroup: ""    // EU | NATO | Other | "" (none)
   }
 };
 
@@ -112,6 +113,7 @@ async function init() {
   if (urlParams.get("entities")) { urlParams.get("entities").split(",").forEach(e => state.filters.entities.add(e)); }
   if (urlParams.get("ttp")) { state.filters.ttp = urlParams.get("ttp"); }
   if (urlParams.get("region")) { state.filters.region = urlParams.get("region"); }
+  if (urlParams.get("mgroup")) { state.filters.mgroup = urlParams.get("mgroup"); }
 
   buildFilterUI();
 
@@ -347,6 +349,7 @@ function currentParams() {
   if (state.filters.entities.size) p.set("entities", Array.from(state.filters.entities).join(","));
   if (state.filters.ttp) p.set("ttp", state.filters.ttp);
   if (state.filters.region) p.set("region", state.filters.region);
+  if (state.filters.mgroup) p.set("mgroup", state.filters.mgroup);
   p.set("page", state.page);
   p.set("page_size", state.pageSize);
   return p.toString();
@@ -428,6 +431,7 @@ function renderApplied() {
   state.filters.entities.forEach(v => chip("Entity", v, () => { state.filters.entities.delete(v); selectedEntities.delete(v); }));
   if (state.filters.ttp) chip("TTP", state.filters.ttp, () => { state.filters.ttp = ""; });
   if (state.filters.region) chip("Region", state.filters.region, () => { state.filters.region = ""; $("#region-select").value = ""; });
+  if (state.filters.mgroup) chip("Multilateral", state.filters.mgroup, () => { state.filters.mgroup = ""; });
   if (state.filters.start) chip("From", state.filters.start, () => { state.filters.start = null; $("#start-year").value = ""; });
   if (state.filters.end) chip("To", state.filters.end, () => { state.filters.end = null; $("#end-year").value = ""; });
 
@@ -443,6 +447,7 @@ function clearAll() {
   selectedEntities.clear();
   state.filters.ttp = "";
   state.filters.region = ""; $("#region-select").value = "";
+  state.filters.mgroup = "";
   state.filters.start = null; $("#start-year").value = "";
   state.filters.end = null; $("#end-year").value = "";
   $("#country-select").value = "";
@@ -1065,40 +1070,70 @@ function renderMap(countryRows, countryMeta) {
 }
 
 // Renders the EU / NATO / Other stacked-segment bar that hangs off the
-// bottom of the map. `breakdown` is { EU: n, NATO: m, Other: k }. Hidden
-// when total is zero. Segments shorter than ~7% of the bar drop their
-// label text to avoid overlap.
+// bottom of the map. `breakdown` is now {EU: {<actor>: n, ..., _total: t}, ...}.
+// Each top-level section is a clickable filter (toggles state.filters.mgroup);
+// inside each section we stack actor-colored sub-segments. Section labels
+// drop their text when the section is too narrow (~7% of the bar).
 function renderMultilateralBar(breakdown) {
   const wrap = document.getElementById("multilateral-bar");
   const track = document.getElementById("multilateral-bar-track");
   if (!wrap || !track) return;
 
-  const segments = [
-    { key: "EU",    color: "#0068B2" },
-    { key: "NATO",  color: "#8B2C3F" },
-    { key: "Other", color: "#5C6771" },
-  ];
-  const total = segments.reduce((s, seg) => s + (breakdown[seg.key] || 0), 0);
+  const groupKeys = ["EU", "NATO", "Other"];
+  const totals = groupKeys.map(k => (breakdown && breakdown[k] && breakdown[k]._total) || 0);
+  const total = totals.reduce((s, n) => s + n, 0);
   if (!total) {
     wrap.hidden = true;
     track.innerHTML = "";
     return;
   }
-
   wrap.hidden = false;
-  track.innerHTML = segments
-    .map(seg => {
-      const n = breakdown[seg.key] || 0;
-      if (!n) return "";
-      const pct = (n / total) * 100;
-      const showName = pct >= 7;
-      return `<div class="multilateral-bar-seg"
-                style="flex: ${n} 1 0; background:${seg.color};"
-                title="${seg.key}: ${n} incident${n === 1 ? "" : "s"}">
-              <span class="seg-count">${n}</span>${showName ? `<span class="seg-name">${seg.key}</span>` : ""}
-            </div>`;
-    })
-    .join("");
+  track.innerHTML = "";
+
+  groupKeys.forEach((key, i) => {
+    const groupTotal = totals[i];
+    if (!groupTotal) return;
+    const bucket = breakdown[key] || {};
+    const pct = (groupTotal / total) * 100;
+    const showName = pct >= 7;
+    const selected = state.filters.mgroup === key;
+
+    const seg = document.createElement("div");
+    seg.className = "multilateral-bar-seg" + (selected ? " multilateral-bar-seg--selected" : "");
+    seg.style.flex = `${groupTotal} 1 0`;
+    seg.dataset.group = key;
+    seg.title = `${key}: ${groupTotal} incident${groupTotal === 1 ? "" : "s"} — click to filter`;
+
+    // Sub-stack: actor-colored mini bars covering 100% of the section width
+    // proportional to actor counts within the group.
+    const actors = Object.keys(bucket)
+      .filter(k => k !== "_total")
+      .sort((a, b) => bucket[b] - bucket[a]);
+    actors.forEach(actor => {
+      const sub = document.createElement("div");
+      sub.className = "multilateral-bar-sub";
+      sub.style.flex = `${bucket[actor]} 1 0`;
+      sub.style.background = actorColor(actor);
+      sub.title = `${key} · ${actor}: ${bucket[actor]}`;
+      seg.appendChild(sub);
+    });
+
+    // Section label overlays the colored stack.
+    const labelWrap = document.createElement("div");
+    labelWrap.className = "multilateral-bar-label-overlay";
+    labelWrap.innerHTML =
+      `<span class="seg-count">${groupTotal}</span>` +
+      (showName ? `<span class="seg-name">${key}</span>` : "");
+    seg.appendChild(labelWrap);
+
+    seg.addEventListener("click", () => {
+      state.filters.mgroup = state.filters.mgroup === key ? "" : key;
+      state.page = 1;
+      refresh();
+    });
+
+    track.appendChild(seg);
+  });
 }
 
 function calculateDonutRadius(total) {
@@ -1616,6 +1651,7 @@ function buildFilterURL() {
   if (state.filters.entities.size) p.set("entities", Array.from(state.filters.entities).join(","));
   if (state.filters.ttp) p.set("ttp", state.filters.ttp);
   if (state.filters.region) p.set("region", state.filters.region);
+  if (state.filters.mgroup) p.set("mgroup", state.filters.mgroup);
   const qs = p.toString();
   return qs ? `/?${qs}` : "/";
 }
@@ -1912,8 +1948,39 @@ function renderEntityChord(entities, allPairs) {
     .style('letter-spacing', '.04em')
     .text(`top ${top.length} of ${entities.length} entities`);
 
-  // Legend — only roles that actually appear in the rendered top set, so the
-  // legend stays tight (no orphan swatches for roles nobody on screen has).
+  // Two legend rows below the ring. The role legend (text color of arc
+  // labels) sits just above the caption; the entity-type legend (fill color
+  // of the arcs themselves) sits one row above it. Both legends auto-omit
+  // entries that don't appear in the rendered top set so they stay tight.
+  function _legendRow(items, yOffset) {
+    // items: [{label, color}]
+    if (!items.length) return 0;
+    const g = svg.append('g').attr('class', 'chord-legend');
+    const swatchGap = 8;
+    const itemGap = 14;
+    let cursorX = 0;
+    items.forEach(it => {
+      const item = g.append('g');
+      item.append('rect')
+        .attr('x', 0).attr('y', -7).attr('width', 9).attr('height', 9).attr('rx', 2)
+        .attr('fill', it.color);
+      const label = item.append('text')
+        .attr('x', 9 + swatchGap).attr('y', 1)
+        .style('font-size', '10.5px')
+        .style('font-family', "'IBM Plex Sans', sans-serif")
+        .style('fill', it.color)
+        .style('font-weight', '600')
+        .text(it.label);
+      const w = (label.node().getComputedTextLength?.() || 60) + 9 + swatchGap;
+      item.attr('transform', `translate(${cursorX}, 0)`);
+      cursorX += w + itemGap;
+    });
+    const legendWidth = cursorX - itemGap;
+    g.attr('transform', `translate(${-legendWidth / 2}, ${yOffset})`);
+    return legendWidth;
+  }
+
+  // Role legend (text colors).
   const rolesPresent = new Set();
   top.forEach(e => {
     const roles = e.roles || (e.role ? [e.role] : []);
@@ -1921,33 +1988,25 @@ function renderEntityChord(entities, allPairs) {
       if (roles.includes(r)) { rolesPresent.add(r); break; }
     }
   });
-  const legendRoles = ENT_ROLE_PRIORITY.filter(r => rolesPresent.has(r));
-  if (legendRoles.length) {
-    const legend = svg.append('g').attr('class', 'chord-legend');
-    const swatchGap = 10;
-    const itemGap = 14;
-    let cursorX = 0;
-    const items = legendRoles.map(r => {
-      const g = legend.append('g');
-      const swatch = g.append('rect')
-        .attr('x', 0).attr('y', -7).attr('width', 9).attr('height', 9).attr('rx', 2)
-        .attr('fill', ENT_ROLE_STROKES[r]);
-      const label = g.append('text')
-        .attr('x', 9 + swatchGap).attr('y', 1)
-        .style('font-size', '10.5px')
-        .style('font-family', "'IBM Plex Sans', sans-serif")
-        .style('fill', ENT_ROLE_STROKES[r])
-        .style('font-weight', '600')
-        .text(ENT_ROLE_LABELS[r]);
-      const w = (label.node().getComputedTextLength?.() || 60) + 9 + swatchGap;
-      g.attr('transform', `translate(${cursorX}, 0)`);
-      cursorX += w + itemGap;
-      return g;
-    });
-    // Center horizontally, hang above the caption at the bottom of the SVG.
-    const legendWidth = cursorX - itemGap;
-    legend.attr('transform', `translate(${-legendWidth / 2}, ${height / 2 - 28})`);
-  }
+  const roleItems = ENT_ROLE_PRIORITY
+    .filter(r => rolesPresent.has(r))
+    .map(r => ({ label: ENT_ROLE_LABELS[r], color: ENT_ROLE_STROKES[r] }));
+
+  // Entity-type legend (arc fill colors). Order by the canonical palette
+  // so unrelated runs are visually stable.
+  const typeOrder = ['military', 'government', 'organization', 'person',
+                     'infrastructure', 'media', 'malware'];
+  const typesPresent = new Set(top.map(e => e.type).filter(Boolean));
+  const typeItems = typeOrder
+    .filter(t => typesPresent.has(t))
+    .map(t => ({
+      label: t.charAt(0).toUpperCase() + t.slice(1),
+      color: ENT_TYPE_COLORS[t] || '#888',
+    }));
+
+  // Layout: type row sits above role row, both hugging the bottom of the SVG.
+  _legendRow(typeItems, height / 2 - 44);
+  _legendRow(roleItems, height / 2 - 28);
 }
 
 // Build a small inline sparkline of activity per year. Uses a fixed year
