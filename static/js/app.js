@@ -1392,7 +1392,7 @@ function renderList(incidents) {
 
     // Type / TTP combined
     const ttpSuffix = (inc.ttps || []).length
-      ? ' <span class="tag-sep">/</span> ' + (inc.ttps || []).map(t => `<span class="tag tag-ttp">${t}</span>`).join("")
+      ? ' <span class="tag-sep">/</span> ' + (inc.ttps || []).map(t => `<span class="tag tag-ttp" data-v="${t}">${t}</span>`).join("")
       : "";
 
     const adminEditLink = window.isAdmin
@@ -1443,11 +1443,18 @@ function renderList(incidents) {
     toggleSet(state.filters.tools, e.currentTarget.dataset.v);
     state.page = 1; refresh();
   }));
+  $$(".tag-ttp").forEach(t => t.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const v = e.currentTarget.dataset.v;
+    state.filters.ttp = state.filters.ttp === v ? "" : v;
+    state.page = 1; refresh();
+  }));
 
   // Highlight active tags
   $$(".tag-actor").forEach(t => { if (state.filters.actors.has(t.dataset.v)) t.classList.add("selected"); });
   $$(".tag-country").forEach(t => { if (state.filters.countries.has(t.dataset.v)) t.classList.add("selected"); });
   $$(".tag-tool").forEach(t => { if (state.filters.tools.has(t.dataset.v)) t.classList.add("selected"); });
+  $$(".tag-ttp").forEach(t => { if (state.filters.ttp === t.dataset.v) t.classList.add("selected"); });
 
   // Bind entire card click -> modal (except links/tags)
   $$(".incident").forEach(card => {
@@ -1658,6 +1665,23 @@ const ENT_ROLE_STROKES = {
   perpetrator: '#C7074D', target: '#0068B2', attributed_group: '#D4587A',
   source: '#999', tool: '#9B59B6',
 };
+// Role priority for entity label coloring (chord chart).
+// Highest priority wins when an entity carries multiple roles.
+const ENT_ROLE_PRIORITY = ['perpetrator', 'target', 'attributed_group', 'tool', 'source'];
+const ENT_ROLE_LABELS = {
+  perpetrator: 'Perpetrator',
+  target: 'Target',
+  attributed_group: 'Attributed group',
+  tool: 'Tool',
+  source: 'Source / other',
+};
+function entityRoleColor(e) {
+  const roles = e.roles || (e.role ? [e.role] : []);
+  for (const r of ENT_ROLE_PRIORITY) {
+    if (roles.includes(r)) return ENT_ROLE_STROKES[r];
+  }
+  return ENT_ROLE_STROKES.source;
+}
 
 let entitySimulation = null;
 let entityRawData = { nodes: [], edges: [] };
@@ -1877,7 +1901,8 @@ function renderEntityChord(entities, allPairs) {
       refresh();
     });
 
-  // Arc labels — position outside the arc at its midpoint
+  // Arc labels — colored by the entity's highest-priority role so a glance
+  // at the ring tells you who's a perpetrator vs. a target vs. a tool.
   group.append('text')
     .each(d => { d.angle = (d.startAngle + d.endAngle) / 2; })
     .attr('dy', '.35em')
@@ -1888,8 +1913,9 @@ function renderEntityChord(entities, allPairs) {
     )
     .attr('text-anchor', d => d.angle > Math.PI ? 'end' : null)
     .style('font-size', '11px')
+    .style('font-weight', '600')
     .style('font-family', "'IBM Plex Sans', sans-serif")
-    .style('fill', '#37474F')
+    .style('fill', d => entityRoleColor(top[d.index]))
     .text(d => {
       const e = top[d.index];
       const lbl = e.name.length > 22 ? e.name.slice(0, 21) + '…' : e.name;
@@ -1905,6 +1931,43 @@ function renderEntityChord(entities, allPairs) {
     .style('fill', '#8a9aa3')
     .style('letter-spacing', '.04em')
     .text(`top ${top.length} of ${entities.length} entities`);
+
+  // Legend — only roles that actually appear in the rendered top set, so the
+  // legend stays tight (no orphan swatches for roles nobody on screen has).
+  const rolesPresent = new Set();
+  top.forEach(e => {
+    const roles = e.roles || (e.role ? [e.role] : []);
+    for (const r of ENT_ROLE_PRIORITY) {
+      if (roles.includes(r)) { rolesPresent.add(r); break; }
+    }
+  });
+  const legendRoles = ENT_ROLE_PRIORITY.filter(r => rolesPresent.has(r));
+  if (legendRoles.length) {
+    const legend = svg.append('g').attr('class', 'chord-legend');
+    const swatchGap = 10;
+    const itemGap = 14;
+    let cursorX = 0;
+    const items = legendRoles.map(r => {
+      const g = legend.append('g');
+      const swatch = g.append('rect')
+        .attr('x', 0).attr('y', -7).attr('width', 9).attr('height', 9).attr('rx', 2)
+        .attr('fill', ENT_ROLE_STROKES[r]);
+      const label = g.append('text')
+        .attr('x', 9 + swatchGap).attr('y', 1)
+        .style('font-size', '10.5px')
+        .style('font-family', "'IBM Plex Sans', sans-serif")
+        .style('fill', ENT_ROLE_STROKES[r])
+        .style('font-weight', '600')
+        .text(ENT_ROLE_LABELS[r]);
+      const w = (label.node().getComputedTextLength?.() || 60) + 9 + swatchGap;
+      g.attr('transform', `translate(${cursorX}, 0)`);
+      cursorX += w + itemGap;
+      return g;
+    });
+    // Center horizontally, hang above the caption at the bottom of the SVG.
+    const legendWidth = cursorX - itemGap;
+    legend.attr('transform', `translate(${-legendWidth / 2}, ${height / 2 - 28})`);
+  }
 }
 
 // Build a small inline sparkline of activity per year. Uses a fixed year
