@@ -201,11 +201,15 @@ body {
 
 .filter-row--search { position: relative; }
 .filter-row--search #search {
-  width: 100%; padding: .4rem 2.5rem .4rem .9rem;
+  width: 100%; padding: .4rem 4rem .4rem .9rem;
   border: 1px solid #ddd; border-radius: .5rem; background: white;
   font-size: .9rem; outline: none; transition: border-color 200ms;
 }
 .filter-row--search #search:focus { border-color: var(--primary-color); }
+.filter-row--search .search-help {
+  position: absolute; right: 32px; top: 50%; transform: translateY(-50%);
+  z-index: 2;
+}
 
 .filter-toggle {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%);

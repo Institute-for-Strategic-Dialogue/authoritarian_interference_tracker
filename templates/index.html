@@ -110,7 +110,8 @@
     <div class="filter-bar container">
       <!-- Search row (always visible) -->
       <div class="filter-row filter-row--search">
-        <input id="search" type="text" placeholder="Search incidents..." autocomplete="off" />
+        <input id="search" type="text" placeholder='Search — try "exact phrase", OR, or -exclude' autocomplete="off" />
+        <span class="info-tip search-help" data-tip='Boolean search: bare words are AND-ed. Use "quotes" for exact phrases, OR for alternatives, and a leading - to exclude. Example: "election interference" OR sabotage -ukraine'>?</span>
         <button id="filter-toggle" class="filter-toggle" aria-label="Toggle filters">&#9660;</button>
       </div>
 

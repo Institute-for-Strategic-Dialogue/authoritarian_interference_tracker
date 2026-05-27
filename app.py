@@ -251,13 +251,63 @@ def _year_range(start_year, end_year):
     return list(range(s, e + 1))
 
 
+def _parse_search_query(q: str):
+    """Parse a Google-style search string into AND/OR/NOT groups.
+
+    Mirrors what Postgres `websearch_to_tsquery` does on the backend so the
+    public frontend (which filters a cached snapshot in Python) gives the
+    same answers as the editorial backend. Supports:
+      - bare words (AND'd together within a group)
+      - "exact phrases" (matched as substrings, AND'd)
+      - OR (case-insensitive) to split into alternative groups
+      - -term and -"phrase" to exclude
+
+    Returns a list of {"include": [...], "phrases": [...], "exclude": [...]}.
+    A row matches if ANY group matches.
+    """
+    import shlex
+    try:
+        tokens = shlex.split(q, posix=True)
+    except ValueError:
+        # Unterminated quote — fall back to a single literal token.
+        tokens = [q]
+
+    groups = []
+    cur = {"include": [], "phrases": [], "exclude": []}
+    for raw in tokens:
+        if raw.upper() == "OR":
+            groups.append(cur)
+            cur = {"include": [], "phrases": [], "exclude": []}
+            continue
+        negate = raw.startswith("-") and len(raw) > 1
+        tok = raw[1:] if negate else raw
+        bucket = "exclude" if negate else ("phrases" if " " in tok else "include")
+        cur[bucket].append(tok.lower())
+    groups.append(cur)
+    # Drop empty groups so a trailing OR doesn't widen the match to everything.
+    return [g for g in groups if g["include"] or g["phrases"] or g["exclude"]]
+
+
+def _matches_search(hay: str, groups) -> bool:
+    """True when at least one group matches the lowercased haystack."""
+    if not groups:
+        return True
+    for g in groups:
+        if all(t in hay for t in g["include"]) \
+                and all(p in hay for p in g["phrases"]) \
+                and not any(t in hay for t in g["exclude"]):
+            return True
+    return False
+
+
 def _filter_incidents(incidents, filters):
+    search_groups = _parse_search_query(filters["q"]) if filters.get("q") else None
     out = []
     for inc in incidents:
-        if filters.get("q"):
+        if search_groups:
             entity_names = " ".join(e.get("name", "") for e in (inc.get("entities") or []))
             hay = f"{inc['title']} {inc['summary']} {entity_names}".lower()
-            if filters["q"].lower() not in hay:
+            if not _matches_search(hay, search_groups):
                 continue
         if filters.get("entities"):
             inc_entity_names = {e.get("normalized_name", e.get("name", "")).lower() for e in (inc.get("entities") or [])}
