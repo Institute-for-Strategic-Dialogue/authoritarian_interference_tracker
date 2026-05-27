@@ -1938,49 +1938,12 @@ function renderEntityChord(entities, allPairs) {
       return `${lbl} (${e.total})`;
     });
 
-  // Caption — what view this is + how many entities are in the chord
-  svg.append('text')
-    .attr('text-anchor', 'middle')
-    .attr('y', height / 2 - 8)
-    .style('font-size', '11px')
-    .style('font-family', "'Space Mono', monospace")
-    .style('fill', '#8a9aa3')
-    .style('letter-spacing', '.04em')
-    .text(`top ${top.length} of ${entities.length} entities`);
-
-  // Two legend rows below the ring. The role legend (text color of arc
-  // labels) sits just above the caption; the entity-type legend (fill color
-  // of the arcs themselves) sits one row above it. Both legends auto-omit
-  // entries that don't appear in the rendered top set so they stay tight.
-  function _legendRow(items, yOffset) {
-    // items: [{label, color}]
-    if (!items.length) return 0;
-    const g = svg.append('g').attr('class', 'chord-legend');
-    const swatchGap = 8;
-    const itemGap = 14;
-    let cursorX = 0;
-    items.forEach(it => {
-      const item = g.append('g');
-      item.append('rect')
-        .attr('x', 0).attr('y', -7).attr('width', 9).attr('height', 9).attr('rx', 2)
-        .attr('fill', it.color);
-      const label = item.append('text')
-        .attr('x', 9 + swatchGap).attr('y', 1)
-        .style('font-size', '10.5px')
-        .style('font-family', "'IBM Plex Sans', sans-serif")
-        .style('fill', it.color)
-        .style('font-weight', '600')
-        .text(it.label);
-      const w = (label.node().getComputedTextLength?.() || 60) + 9 + swatchGap;
-      item.attr('transform', `translate(${cursorX}, 0)`);
-      cursorX += w + itemGap;
-    });
-    const legendWidth = cursorX - itemGap;
-    g.attr('transform', `translate(${-legendWidth / 2}, ${yOffset})`);
-    return legendWidth;
-  }
-
-  // Role legend (text colors).
+  // Legend block — upper-left corner of the SVG. Two grouped sections so
+  // the user knows the colors are encoding two different things:
+  //   - Role (label) — drives the text color of each entity label
+  //   - Type (bar)   — drives the fill color of each arc
+  // Sections auto-omit any roles/types that don't appear in the rendered
+  // top set so the legend stays compact.
   const rolesPresent = new Set();
   top.forEach(e => {
     const roles = e.roles || (e.role ? [e.role] : []);
@@ -1992,8 +1955,6 @@ function renderEntityChord(entities, allPairs) {
     .filter(r => rolesPresent.has(r))
     .map(r => ({ label: ENT_ROLE_LABELS[r], color: ENT_ROLE_STROKES[r] }));
 
-  // Entity-type legend (arc fill colors). Order by the canonical palette
-  // so unrelated runs are visually stable.
   const typeOrder = ['military', 'government', 'organization', 'person',
                      'infrastructure', 'media', 'malware'];
   const typesPresent = new Set(top.map(e => e.type).filter(Boolean));
@@ -2004,9 +1965,73 @@ function renderEntityChord(entities, allPairs) {
       color: ENT_TYPE_COLORS[t] || '#888',
     }));
 
-  // Layout: type row sits above role row, both hugging the bottom of the SVG.
-  _legendRow(typeItems, height / 2 - 44);
-  _legendRow(roleItems, height / 2 - 28);
+  const legend = svg.append('g').attr('class', 'chord-legend');
+  // Inset from the upper-left corner of the viewBox.
+  const padX = 14, padY = 14;
+  legend.attr('transform', `translate(${-width / 2 + padX}, ${-height / 2 + padY})`);
+
+  // Background plate so the legend reads clearly over the chord ribbons
+  // when the chart is dense.
+  const plate = legend.append('rect')
+    .attr('x', -8).attr('y', -8)
+    .attr('rx', 4)
+    .attr('fill', 'rgba(255,255,255,0.92)')
+    .attr('stroke', 'rgba(0,0,0,0.06)');
+
+  let cursorY = 0;
+  function _legendSection(title, items) {
+    if (!items.length) return;
+    const sect = legend.append('g').attr('transform', `translate(0, ${cursorY})`);
+    sect.append('text')
+      .attr('y', 0)
+      .style('font-size', '9.5px')
+      .style('font-family', "'Space Mono', monospace")
+      .style('letter-spacing', '.08em')
+      .style('text-transform', 'uppercase')
+      .style('fill', '#8a929b')
+      .style('font-weight', '700')
+      .text(title);
+    cursorY += 12;
+    items.forEach(it => {
+      const row = legend.append('g').attr('transform', `translate(0, ${cursorY})`);
+      row.append('rect')
+        .attr('x', 0).attr('y', -7).attr('width', 9).attr('height', 9).attr('rx', 2)
+        .attr('fill', it.color);
+      row.append('text')
+        .attr('x', 9 + 7).attr('y', 1)
+        .style('font-size', '10.5px')
+        .style('font-family', "'IBM Plex Sans', sans-serif")
+        .style('fill', it.color)
+        .style('font-weight', '600')
+        .text(it.label);
+      cursorY += 14;
+    });
+    cursorY += 6;  // breathing room between sections
+  }
+  _legendSection('Role (label)', roleItems);
+  _legendSection('Type (bar)', typeItems);
+
+  // Size the background plate to whatever the sections came out to.
+  let maxTextWidth = 0;
+  legend.selectAll('text').each(function () {
+    const w = this.getComputedTextLength?.() || 0;
+    if (w > maxTextWidth) maxTextWidth = w;
+  });
+  const plateWidth = Math.max(maxTextWidth, 9 + 7 + 60) + 16;
+  const plateHeight = cursorY + 2;
+  plate.attr('width', plateWidth).attr('height', plateHeight);
+
+  // Caption — what view this is + how many entities are in the chord.
+  // Drop it to the bottom-right so it doesn't crowd the legend.
+  svg.append('text')
+    .attr('text-anchor', 'end')
+    .attr('x', width / 2 - 12)
+    .attr('y', height / 2 - 10)
+    .style('font-size', '11px')
+    .style('font-family', "'Space Mono', monospace")
+    .style('fill', '#8a9aa3')
+    .style('letter-spacing', '.04em')
+    .text(`top ${top.length} of ${entities.length} entities`);
 }
 
 // Build a small inline sparkline of activity per year. Uses a fixed year
