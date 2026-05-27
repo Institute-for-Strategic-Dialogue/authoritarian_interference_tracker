@@ -554,16 +554,10 @@ function renderVolumeChart(rows) {
       .append("title").text(`${actorName}: ${s.reduce((acc, d) => acc + (d.data[actorName] || 0), 0)} incident-years`);
   });
 
-  // Per-year hover with stacked tooltip values. We capture the closest year
-  // by clientX and render a vertical guide + per-actor count list.
-  const tooltip = el.append("div")
-    .style("position", "absolute").style("pointer-events", "none").style("display", "none")
-    .style("background", "rgba(255,255,255,0.96)").style("border", "1px solid #ccc")
-    .style("border-radius", "4px").style("padding", "6px 10px").style("font-size", "12px")
-    .style("font-family", "'IBM Plex Sans', sans-serif").style("box-shadow", "0 2px 8px rgba(0,0,0,.12)")
-    .style("z-index", "100000").style("white-space", "nowrap");
-  el.style("position", "relative");
-
+  // Per-year hover with stacked tooltip values. Render the tooltip via the
+  // shared body-level floating-tip helper so it escapes the chart card's
+  // overflow:hidden bounds and stays clamped to the viewport. The vertical
+  // guide line is still SVG-local because it's inside the chart geometry.
   const guide = g.append("line")
     .attr("y1", 0).attr("y2", innerH)
     .attr("stroke", "#37474F").attr("stroke-dasharray", "3,3").attr("stroke-width", 1)
@@ -577,21 +571,21 @@ function renderVolumeChart(rows) {
     const [mx] = d3.pointer(event, this);
     const yr = Math.round(x.invert(mx));
     const point = stackData.find(d => d.year === yr);
-    if (!point) { tooltip.style("display", "none"); guide.style("display", "none"); return; }
+    if (!point) { hideFloatingTip(); guide.style("display", "none"); return; }
     guide.attr("x1", x(yr)).attr("x2", x(yr)).style("display", "");
     const yearLabel = (yr === preYearVal && hasPre) ? "Pre-2010" : yr;
     const lines = actors
       .map(a => ({ a, c: point[a] || 0 }))
       .filter(d => d.c > 0)
       .sort((a, b) => b.c - a.c)
-      .map(d => `<div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;background:${actorColor(d.a)};border-radius:50%;"></span>${d.a}: <strong>${d.c}</strong></div>`)
+      .map(d => `<div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;background:${actorColor(d.a)};border-radius:50%;display:inline-block;"></span>${d.a}: <strong>${d.c}</strong></div>`)
       .join("");
-    tooltip.html(`<div style="font-weight:600;margin-bottom:3px;">${yearLabel}</div>${lines || '<div style="color:#999;">no activity</div>'}`)
-      .style("display", "block")
-      .style("left", (margin.left + x(yr) + 10) + "px")
-      .style("top", (margin.top + 10) + "px");
+    showFloatingTipAt(
+      event.clientX, event.clientY,
+      `<div style="font-weight:600;margin-bottom:3px;">${yearLabel}</div>${lines || '<div style="color:#aab;">no activity</div>'}`
+    );
   }).on("mouseleave", () => {
-    tooltip.style("display", "none");
+    hideFloatingTip();
     guide.style("display", "none");
   });
 
@@ -862,26 +856,15 @@ function renderSankey(countryRows, stackedRows, nodeCounts = {}) {
       refresh();
     });
 
-  // Hover tooltip
-  const tooltip = el.append("div")
-    .style("position", "absolute").style("pointer-events", "none").style("display", "none")
-    .style("background", "rgba(255,255,255,0.95)").style("border", "1px solid #ccc")
-    .style("border-radius", "4px").style("padding", "4px 8px").style("font-size", "12px")
-    .style("font-family", "'IBM Plex Sans', sans-serif").style("box-shadow", "0 2px 8px rgba(0,0,0,.1)")
-    .style("z-index", "100000").style("white-space", "nowrap");
-
-  // Make container relative for tooltip positioning
-  el.style("position", "relative");
-
+  // Hover tooltip — body-level so it escapes the sankey card's
+  // overflow:hidden bounds and never crosses page chrome boundaries.
   node.on("mouseenter", function(e, d) {
     const count = d.realCount || Math.round(d.value);
-    tooltip.html(`<strong>${d.name}</strong> <span style="color:#999;margin-left:4px;">${count}</span>`)
-      .style("display", "block")
-      .style("left", ((d.x0 + d.x1) / 2 + margin.left) + "px")
-      .style("top", (d.y0 + margin.top - 28) + "px")
-      .style("transform", "translateX(-50%)");
+    showFloatingTip(this,
+      `<strong>${d.name}</strong> <span style="color:#aab;margin-left:4px;">${count}</span>`
+    );
   }).on("mouseleave", function() {
-    tooltip.style("display", "none");
+    hideFloatingTip();
   });
 
   // Labels — inside the node rects
@@ -2077,6 +2060,25 @@ function showFloatingTip(refEl, html) {
   left = Math.max(8, Math.min(window.innerWidth - tr.width - 8, left));
   let top = r.top - tr.height - 10;
   if (top < 8) top = r.bottom + 10;
+  top = Math.max(8, Math.min(window.innerHeight - tr.height - 8, top));
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+// Cursor-anchored variant. Used by per-pixel hovers (volume chart) where
+// there is no discrete DOM element to position relative to. clientX/clientY
+// are viewport coordinates from a MouseEvent; we clamp to the viewport so
+// the tip never spills past the edge of the screen.
+function showFloatingTipAt(clientX, clientY, html) {
+  const tip = _ensureFloatingTip();
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  const tr = tip.getBoundingClientRect();
+  let left = clientX + 14;
+  if (left + tr.width + 8 > window.innerWidth) left = clientX - tr.width - 14;
+  left = Math.max(8, Math.min(window.innerWidth - tr.width - 8, left));
+  let top = clientY + 14;
+  if (top + tr.height + 8 > window.innerHeight) top = clientY - tr.height - 14;
+  top = Math.max(8, Math.min(window.innerHeight - tr.height - 8, top));
   tip.style.left = left + 'px';
   tip.style.top = top + 'px';
 }
