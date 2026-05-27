@@ -183,8 +183,18 @@ def _fetch_all_incidents() -> list[dict]:
             last_updated = upd
         incidents.append(_transform(inc))
 
-    # Sort reverse chronological
-    incidents.sort(key=lambda x: x.get("start_year") or 0, reverse=True)
+    # Sort reverse chronological by end_year, with start_year as the
+    # tiebreak. Ongoing incidents (end_year is None) sort to the very top
+    # — they're still happening, so "most recent" applies. A 2021-2025
+    # campaign sorts alongside other 2025-ending incidents rather than
+    # being buried in the 2021 bucket.
+    incidents.sort(
+        key=lambda x: (
+            x.get("end_year") if x.get("end_year") is not None else 9999,
+            x.get("start_year") or 0,
+        ),
+        reverse=True,
+    )
 
     _cache["data"] = incidents
     _cache["ts"] = now
@@ -325,11 +335,21 @@ def _filter_incidents(incidents, filters):
         if filters.get("tools"):
             if not set(inc["tools"]).intersection(filters["tools"]):
                 continue
+        # Date filter uses strict containment: an incident is included only
+        # when its full [start_year, end_year] window fits inside the
+        # filter window. Ongoing incidents (end_year is None) are treated
+        # as extending forever and therefore fail any explicit end-year
+        # constraint. This matches the user's mental model: filtering for
+        # "2024" shows incidents that began and ended in 2024, not
+        # multi-year campaigns that happened to touch 2024.
         if filters.get("start"):
             if (inc["start_year"] or 9999) < filters["start"]:
                 continue
         if filters.get("end"):
             if (inc["start_year"] or 0) > filters["end"]:
+                continue
+            eff_end = inc.get("end_year")
+            if eff_end is None or eff_end > filters["end"]:
                 continue
         if filters.get("region"):
             region_codes = set(REGION_GROUPS.get(filters["region"], []))

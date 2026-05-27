@@ -120,7 +120,9 @@ async function init() {
   if (state.filters.start) $("#start-year").value = state.filters.start;
   if (state.filters.end) $("#end-year").value = state.filters.end;
   if (state.filters.region) $("#region-select").value = state.filters.region;
-  if (state.filters.countries.size === 1) $("#country-select").value = Array.from(state.filters.countries)[0];
+  // Country dropdown is a "next country picker" — always stays at "" after a
+  // selection. The applied-filters chip strip is the source of truth for
+  // which countries are currently selected.
 
   bindEvents();
   bindResize();
@@ -292,11 +294,13 @@ function bindEvents() {
     refresh();
   });
 
-  // Country select
+  // Country select — adds to the multi-select set rather than replacing,
+  // then resets to "" so the user can immediately pick another. Chips in
+  // the applied-filters strip handle removal.
   $("#country-select").addEventListener("change", () => {
     const v = $("#country-select").value;
-    state.filters.countries.clear();
     if (v) state.filters.countries.add(v);
+    $("#country-select").value = "";
     state.page = 1;
     refresh();
   });
@@ -471,18 +475,20 @@ function renderVolumeChart(rows) {
   const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
   // Aggregate per-actor counts per year, dropping anything past CURRENT_YEAR
-  // (those tend to be future-dated artifacts) and bucketing pre-2010 into a
-  // single "Pre" lump that hangs off the left edge.
+  // (those tend to be future-dated artifacts) and bucketing pre-2014 into a
+  // single "Pre" lump that hangs off the left edge — the AIT's coverage
+  // window opens in February 2014 (Crimea annexation), so anything earlier
+  // is backfilled historical context rather than catalog-grade activity.
   const rawYears = Array.from(new Set(rows.map(d => d.year))).filter(y => y <= CURRENT_YEAR).sort((a, b) => a - b);
   const actors = Array.from(new Set(rows.map(d => d.actor))).sort();
   const lookup = {};
   rows.forEach(r => {
-    const key = r.year < 2010 ? `pre_${r.actor}` : `${r.year}_${r.actor}`;
+    const key = r.year < 2014 ? `pre_${r.actor}` : `${r.year}_${r.actor}`;
     lookup[key] = (lookup[key] || 0) + r.count;
   });
 
-  const hasPre = rawYears.some(y => y < 2010);
-  const postYears = rawYears.filter(y => y >= 2010);
+  const hasPre = rawYears.some(y => y < 2014);
+  const postYears = rawYears.filter(y => y >= 2014);
   // For an area chart x must be a continuous numeric scale; collapse Pre into
   // a synthetic year value just left of the lowest real year.
   const minYear = postYears.length ? postYears[0] : CURRENT_YEAR;
@@ -510,7 +516,7 @@ function renderVolumeChart(rows) {
 
   // X axis — show every other real year, "Pre" label for the synthetic point
   const tickYears = yearsForData.filter(yr =>
-    (yr === preYearVal && hasPre) || (yr >= 2010 && yr % 2 === 1)
+    (yr === preYearVal && hasPre) || (yr >= 2014 && yr % 2 === 0)
   );
   const xAxis = g.append("g")
     .attr("transform", `translate(0,${innerH})`)
@@ -573,7 +579,7 @@ function renderVolumeChart(rows) {
     const point = stackData.find(d => d.year === yr);
     if (!point) { hideFloatingTip(); guide.style("display", "none"); return; }
     guide.attr("x1", x(yr)).attr("x2", x(yr)).style("display", "");
-    const yearLabel = (yr === preYearVal && hasPre) ? "Pre-2010" : yr;
+    const yearLabel = (yr === preYearVal && hasPre) ? "Pre-2014" : yr;
     const lines = actors
       .map(a => ({ a, c: point[a] || 0 }))
       .filter(d => d.c > 0)
@@ -589,7 +595,7 @@ function renderVolumeChart(rows) {
     guide.style("display", "none");
   });
 
-  // Visual break between Pre and 2010+
+  // Visual break between Pre and 2014+
   if (hasPre && postYears.length) {
     const breakX = (x(preYearVal) + x(postYears[0])) / 2;
     g.append("line")
@@ -800,9 +806,7 @@ function renderSankey(countryRows, stackedRows, nodeCounts = {}) {
         toggleSet(state.filters.actors, tgt.name);
       } else if (src.column === "actor" && tgt.column === "country") {
         toggleSet(state.filters.actors, src.name);
-        state.filters.countries.clear();
-        state.filters.countries.add(tgt.name);
-        $("#country-select").value = tgt.name;
+        toggleSet(state.filters.countries, tgt.name);
       }
       state.page = 1;
       refresh();
@@ -847,11 +851,7 @@ function renderSankey(countryRows, stackedRows, nodeCounts = {}) {
     .on("click", (_, d) => {
       if (d.column === "actor") toggleSet(state.filters.actors, d.name);
       else if (d.column === "tool") toggleSet(state.filters.tools, d.name);
-      else if (d.column === "country") {
-        state.filters.countries.clear();
-        state.filters.countries.add(d.name);
-        $("#country-select").value = d.name;
-      }
+      else if (d.column === "country") toggleSet(state.filters.countries, d.name);
       state.page = 1;
       refresh();
     });
@@ -1055,9 +1055,7 @@ function renderMap(countryRows, countryMeta) {
       title: `${country}: ${tot} incidents`,
       actorCounts: counts
     }).on("click", () => {
-      state.filters.countries.clear();
-      state.filters.countries.add(country);
-      $("#country-select").value = country;
+      toggleSet(state.filters.countries, country);
       state.page = 1;
       refresh();
     });
@@ -1418,7 +1416,6 @@ function renderList(incidents) {
   $$(".tag-country").forEach(t => t.addEventListener("click", (e) => {
     e.stopPropagation();
     toggleSet(state.filters.countries, e.currentTarget.dataset.v);
-    $("#country-select").value = state.filters.countries.size === 1 ? Array.from(state.filters.countries)[0] : "";
     state.page = 1; refresh();
   }));
   $$(".tag-tool").forEach(t => t.addEventListener("click", (e) => {
