@@ -3,34 +3,91 @@
    ======================================================================== */
 
 :root {
-  --bg-soft: #f8fafc;
-  --text-strong: #3a3f45;       /* Based on ISD Dark Grey */
-  --text-muted: #5C6771;        /* ISD Dark Grey */
-  --card-radius: .75rem;
-  --shadow: 0 2px 16px rgba(0,0,0,.06);
-  --border-color: rgba(0,0,0,.08);
+  /* ---------- ISD brand (canonical) ---------- */
+  --isd-red:        #C7074D;    /* primary brand */
+  --isd-dark-grey:  #5C6771;    /* secondary brand / body text */
+  --isd-purple:     #4C4193;    /* accent */
+  --isd-blue:       #0068B2;    /* accent */
+  --isd-coral:      #E76863;    /* accent */
+  --isd-light-grey: #B4B2B1;    /* dividers, muted */
 
-  /* ISD Primary */
-  --primary-color: #C7074D;    /* ISD Red */
-  --secondary-color: #5C6771;  /* ISD Dark Grey */
+  /* ---------- Surfaces ---------- */
+  --surface-paper: #FAF6F2;     /* warm off-white canvas */
+  --surface-white: #FFFFFF;
+  --surface-tint:  #F2EEE9;     /* slightly darker than paper */
+  --surface-ink:   #1C2024;     /* near-black for headlines */
 
-  /* ISD Secondary palette */
-  --accent-blue: #0068B2;      /* ISD Blue */
-  --accent-coral: #E76863;     /* ISD Coral */
-  --accent-purple: #4C4193;    /* ISD Purple */
-  --accent-gray: #B4B2B1;      /* ISD Light Grey */
+  /* ---------- Semantic foregrounds ---------- */
+  --fg-1: #1C2024;              /* headlines */
+  --fg-2: #5C6771;              /* body */
+  --fg-3: #8A929B;              /* tertiary / captions */
+  --fg-inverse: #FFFFFF;
+  --fg-brand:   #C7074D;
+
+  /* ---------- Borders ---------- */
+  --border-soft:   #E7E3DD;
+  --border-mid:    #D6D2CB;
+  --border-strong: #B4B2B1;
+
+  /* ---------- Shadows ---------- */
+  --shadow-sm: 0 1px 2px rgba(28, 32, 36, 0.06), 0 1px 1px rgba(28, 32, 36, 0.04);
+  --shadow-md: 0 4px 12px rgba(28, 32, 36, 0.08), 0 2px 4px rgba(28, 32, 36, 0.04);
+  --shadow-lg: 0 16px 40px rgba(28, 32, 36, 0.12), 0 4px 12px rgba(28, 32, 36, 0.06);
+
+  /* ---------- Radii ---------- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+
+  /* ---------- Spacing scale ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ---------- Type scale ---------- */
+  --font-sans:  'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono:  'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --t-display:  54px / 1.05 var(--font-sans);
+  --t-h1:       38px / 1.15 var(--font-sans);
+  --t-h2:       27px / 1.25 var(--font-sans);
+  --t-h3:       20px / 1.35 var(--font-sans);
+  --t-body:     16px / 1.55 var(--font-sans);
+  --t-body-sm:  14px / 1.5  var(--font-sans);
+  --t-caption:  13px / 1.4  var(--font-sans);
+  --t-eyebrow:  12px / 1.2  var(--font-sans);
+
+  /* ---------- Legacy aliases (kept so the rest of the stylesheet still resolves) ---------- */
+  --bg-soft:        var(--surface-paper);
+  --text-strong:    var(--fg-1);
+  --text-muted:     var(--fg-2);
+  --card-radius:    var(--radius-md);
+  --shadow:         var(--shadow-md);
+  --border-color:   var(--border-soft);
+  --primary-color:   var(--isd-red);
+  --secondary-color: var(--isd-dark-grey);
+  --accent-blue:    var(--isd-blue);
+  --accent-coral:   var(--isd-coral);
+  --accent-purple:  var(--isd-purple);
+  --accent-gray:    var(--isd-light-grey);
 
   /* Derived accents (complement the ISD palette) */
-  --accent-orange: #E76863;    /* = Coral */
-  --accent-yellow: #D4A843;    /* Warm gold, complements red/coral */
-  --accent-green: #3A8A6E;     /* Muted teal-green */
-  --accent-teal: #2B7A6B;      /* Deeper teal */
-  --accent-lightblue: #5B9FCC; /* Lighter ISD Blue */
-  --accent-pink: #D4587A;      /* Softer ISD Red */
+  --accent-orange:    #E76863;
+  --accent-yellow:    #D4A843;
+  --accent-green:     #3A8A6E;
+  --accent-teal:      #2B7A6B;
+  --accent-lightblue: #5B9FCC;
+  --accent-pink:      #D4587A;
 
   /* Threat actors */
-  --ta-russia: #0068B2;        /* ISD Blue */
-  --ta-china: #C7074D;         /* ISD Red */
+  --ta-russia: #0068B2;
+  --ta-china:  #C7074D;
 }
 
 * { box-sizing: border-box; }
@@ -125,7 +182,7 @@ html, body {
 /* ---- Filter bar (sticky) ---- */
 .filter-bar-wrap {
   position: sticky; top: 0; z-index: 10000;
-  background: rgba(248,250,252,0.97); backdrop-filter: blur(8px);
+  background: rgba(250, 246, 242, 0.97); backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-color);
   padding: .75rem 0;
 }
@@ -636,4 +693,68 @@ html, body {
   .filter-field select, .filter-field input[type="number"] { width: 100%; }
   .viz-grid { grid-template-columns: 1fr; }
   .mapcard #map { height: 350px; }
+}
+
+/* ============================================================================
+   Design-system additions (MEL toolkit alignment)
+   ============================================================================ */
+
+/* ---- Skip-to-content (a11y) ---- */
+.skip-link {
+  position: absolute; top: -40px; left: 8px;
+  background: var(--isd-red); color: #fff;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  font-weight: 600; font-size: 14px;
+  text-decoration: none; z-index: 99999;
+  transition: top 120ms ease;
+}
+.skip-link:focus { top: 8px; outline: 2px solid var(--surface-ink); outline-offset: 2px; }
+
+/* ---- Utility typography ---- */
+.eyebrow {
+  font: var(--t-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--fg-3);
+}
+.caption { font: var(--t-caption); color: var(--fg-3); }
+
+/* ---- Button system ---- */
+.btn {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 80ms ease, background 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--isd-blue); outline-offset: 2px; }
+.btn--primary { background: var(--isd-red); color: #fff; }
+.btn--primary:hover { background: #A40640; box-shadow: var(--shadow-sm); }
+.btn--ghost { background: transparent; color: var(--fg-1); border-color: var(--border-strong); }
+.btn--ghost:hover { background: var(--surface-tint); }
+.btn--text { background: transparent; color: var(--fg-2); padding: 8px 12px; }
+.btn--text:hover { color: var(--fg-1); }
+.btn--dark { background: var(--surface-ink); color: #fff; }
+.btn--dark:hover { background: #000; }
+
+/* ---- Reduced motion (a11y) ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

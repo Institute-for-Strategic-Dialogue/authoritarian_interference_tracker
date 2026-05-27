@@ -7,6 +7,18 @@
   <meta name="description" content="How the Authoritarian Interference Tracker collects, classifies, and reviews incidents.">
   <link rel="canonical" href="{{ request.url }}">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Methodology &middot; Authoritarian Interference Tracker">
+  <meta property="og:description" content="How the Authoritarian Interference Tracker collects, classifies, and reviews incidents.">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:site_name" content="Authoritarian Interference Tracker">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="{{ request.url_root.rstrip('/') }}/static/img/isd-logo.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Methodology &middot; Authoritarian Interference Tracker">
+  <meta name="twitter:description" content="How the Authoritarian Interference Tracker collects, classifies, and reviews incidents.">
+  <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}/static/img/isd-logo.png">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/styles.css"/>
   <style>
@@ -35,9 +47,28 @@
       border-radius: 4px; font-size: 14px; color: #37474F;
     }
     .methodology-body .see-also a { color: #0068B2; }
+    .methodology-body .citation {
+      background: var(--surface-tint, #F2EEE9);
+      border: 1px solid var(--border-soft, #E7E3DD);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+      font-size: 14px;
+    }
+    .methodology-body .citation .label {
+      font-family: 'Space Mono', monospace; font-size: 11px;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: #8A929B; display: block; margin-bottom: .35rem;
+    }
+    .methodology-body .citation code {
+      display: block; padding: .5rem .65rem; margin-top: .4rem;
+      background: rgba(0,0,0,.04); border-radius: 4px;
+      font-size: 13px; line-height: 1.45; white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="page-header container">
     <div class="brand">
       <div class="brand-row">
@@ -49,7 +80,7 @@
     </div>
   </header>
 
-  <main class="methodology-body">
+  <main class="methodology-body" id="main">
     <h2>Methodology</h2>
 
     <div class="disclaimer">
@@ -229,15 +260,35 @@
       publication. Only incidents that clear both stages appear on the public tracker.
     </p>
 
+    <div class="citation">
+      <span class="label">Suggested citation</span>
+      Institute for Strategic Dialogue.
+      <em>Authoritarian Interference Tracker</em>. Accessed
+      <span id="cite-date">{{ now_iso if now_iso else '' }}</span>.
+      <a href="{{ request.url_root.rstrip('/') }}/">{{ request.url_root.rstrip('/') }}/</a>
+      <code>ISD, "Authoritarian Interference Tracker," accessed [DATE], {{ request.url_root.rstrip('/') }}/.</code>
+    </div>
+
     <div class="see-also">
       For details on data subjects, lawful bases, retention, and the third-party services
       involved in the pipeline, see our
-      <a href="/privacy">Privacy &amp; Data Notice</a>. If you believe an incident is
-      mischaracterized or you are named in an incident and wish to request correction,
-      email <a href="mailto:info@isdglobal.org?subject=AIT%20incident%20correction">info@isdglobal.org</a>.
+      <a href="/privacy">Privacy &amp; Data Notice</a>. Reuse of catalog data is covered by
+      our <a href="/terms">Terms of Use</a>. If you believe an incident is mischaracterized
+      or you are named in an incident and wish to request correction, email
+      <a href="mailto:info@isdglobal.org?subject=AIT%20incident%20correction">info@isdglobal.org</a>.
     </div>
 
     <a class="back-link" href="/">&larr; Back to the tracker</a>
+    <script>
+      // Fill the citation's "Accessed" date with today's ISO date on the client.
+      // Doing it client-side avoids caching a stale date in CDN/proxy layers.
+      (function() {
+        var el = document.getElementById("cite-date");
+        if (el && !el.textContent.trim()) {
+          el.textContent = new Date().toISOString().slice(0, 10);
+        }
+      })();
+    </script>
   </main>
 </body>
 </html>

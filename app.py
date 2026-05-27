@@ -605,6 +605,48 @@ def privacy():
     return render_template("privacy.html")
 
 
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+
+@app.route("/accessibility")
+def accessibility():
+    return render_template("accessibility.html")
+
+
+@app.route("/.well-known/security.txt")
+def security_txt():
+    body = (
+        "Contact: mailto:info@isdglobal.org\n"
+        "Contact: https://www.isdglobal.org/contact/\n"
+        "Expires: 2027-05-27T00:00:00Z\n"
+        "Preferred-Languages: en\n"
+        "Canonical: " + request.url_root.rstrip("/") + "/.well-known/security.txt\n"
+        "Policy: " + request.url_root.rstrip("/") + "/privacy\n"
+    )
+    return Response(body, mimetype="text/plain")
+
+
+@app.after_request
+def _security_headers(response):
+    # Don't add these to JSON API responses' Content-Type guesswork — they're
+    # safe on all responses, but the noisier ones are scoped to HTML.
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    )
+    # HSTS is only meaningful over HTTPS; let the proxy/CDN strip if not.
+    response.headers.setdefault(
+        "Strict-Transport-Security",
+        "max-age=63072000; includeSubDomains"
+    )
+    return response
+
+
 # ---------------------------------------------------------------------------
 # Error pages: each HTTP status gets a quip pool themed to the tracker's
 # incident types — 500/502/503 lean cyber_operations (destructive attack,
