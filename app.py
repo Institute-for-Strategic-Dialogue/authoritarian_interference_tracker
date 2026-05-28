@@ -233,7 +233,10 @@ def _transform(inc: dict) -> dict:
         "review_status": inc.get("review_status"),
         "source": inc.get("source"),
         "ttps": inc.get("ttps") or [],
-        "entities": inc.get("entities") or [],
+        # Drop soft-removed entities at the source so they never reach any
+        # public visualization (chord, table, network) or related-incident
+        # matching.
+        "entities": [e for e in (inc.get("entities") or []) if not e.get("hidden")],
     }
 
 
