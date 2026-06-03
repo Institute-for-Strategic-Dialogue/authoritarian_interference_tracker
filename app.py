@@ -108,6 +108,12 @@ COUNTRY_CENTROIDS = {
     "Slovenia": {"lat": 46.15, "lon": 14.99}, "Slovakia": {"lat": 48.67, "lon": 19.70},
     "Turkey": {"lat": 38.96, "lon": 35.24}, "Ukraine": {"lat": 48.38, "lon": 31.17},
     "United States": {"lat": 37.09, "lon": -95.71}, "Kosovo": {"lat": 42.60, "lon": 20.90},
+    "Armenia": {"lat": 40.07, "lon": 45.04},
+    "Azerbaijan": {"lat": 40.14, "lon": 47.58},
+    "Liechtenstein": {"lat": 47.17, "lon": 9.55},
+    "Andorra": {"lat": 42.55, "lon": 1.60},
+    "Monaco": {"lat": 43.74, "lon": 7.42},
+    "San Marino": {"lat": 43.94, "lon": 12.46},
 }
 
 REGION_GROUPS = {
@@ -634,6 +640,17 @@ def api_incidents():
     start_idx = (page - 1) * page_size
     page_items = filtered[start_idx: start_idx + page_size]
 
+    # Surface any country that has incidents but no centroid — those would be
+    # silently dropped by the map's `if (!m) continue;`. Log loudly and ship
+    # the set in the response so the frontend can warn too.
+    served_countries = {r["country"] for r in country_rows if r.get("country")}
+    unmapped_countries = sorted(served_countries - set(COUNTRY_CENTROIDS.keys()) - {"MULTILATERAL"})
+    if unmapped_countries:
+        app.logger.warning(
+            "Incidents reference countries with no centroid (won't appear on the map): %s. "
+            "Add to COUNTRY_CENTROIDS in app.py.", ", ".join(unmapped_countries),
+        )
+
     return jsonify({
         "total": total,
         "page": page,
@@ -644,6 +661,7 @@ def api_incidents():
         "ttp_by_type": ttp_rows,
         "country_actor": country_rows,
         "country_meta": COUNTRY_CENTROIDS,
+        "unmapped_countries": unmapped_countries,
         "sankey_node_counts": sankey_node_counts,
         "entity_chord": chord_pairs_out,
         "entity_table": entity_rows,

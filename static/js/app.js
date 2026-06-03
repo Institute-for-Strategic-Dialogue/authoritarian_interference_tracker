@@ -389,6 +389,9 @@ async function refresh() {
   updatePillStates();
   try { renderSankey(data.country_actor || [], data.stacked || [], data.sankey_node_counts || {}); } catch(e) { console.error("Sankey:", e); }
   try { renderVolumeChart(data.volume_over_time || []); } catch(e) { console.error("VolumeChart:", e); }
+  if (Array.isArray(data.unmapped_countries) && data.unmapped_countries.length) {
+    console.warn("[map] Server reports unmapped countries (won't show on the map):", data.unmapped_countries);
+  }
   try { renderMap(data.country_actor || [], data.country_meta || {}); } catch(e) { console.error("Map:", e); }
   try { renderMultilateralBar(data.multilateral_breakdown || {}); } catch(e) { console.error("MultilateralBar:", e); }
   try { renderStacked(data.stacked || []); } catch(e) { console.error("Stacked:", e); }
@@ -1044,7 +1047,15 @@ function renderMap(countryRows, countryMeta) {
 
   for (const [country, counts] of Object.entries(byCountry)) {
     const m = countryMeta[country];
-    if (!m) continue;
+    if (!m) {
+      // Silent drops here are how a new country sneaks in unplotted.
+      // Make it visible in the console so we notice the next one.
+      console.warn(
+        `[map] Skipping ${country}: no centroid in COUNTRY_CENTROIDS. ` +
+        `Add it in app.py and the marker will appear.`
+      );
+      continue;
+    }
     const tot = Object.values(counts).reduce((a, b) => a + b, 0);
     const donutData = donutSVG(counts, tot);
     const size = donutData.containerSize;
