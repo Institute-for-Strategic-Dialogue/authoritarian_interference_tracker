@@ -37,7 +37,7 @@ const INCIDENT_TYPES = [
   { name: "Kinetic Operations",      color: "#8B2C3F" },  // Oxblood
   { name: "Information Operations",  color: "#D4A843" },  // Warm gold
   { name: "Malign Finance",          color: "#E76863" },  // ISD Coral
-  { name: "Political & Civic Subversion",color: "#4C4193" }   // ISD Purple
+  { name: "Political and Civil Society Subversion",color: "#4C4193" }   // ISD Purple
 ];
 const INCIDENT_TYPE_MAP = {};
 INCIDENT_TYPES.forEach(t => INCIDENT_TYPE_MAP[t.name] = t.color);

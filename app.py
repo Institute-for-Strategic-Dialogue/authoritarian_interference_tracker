@@ -33,7 +33,7 @@ TOOL_DISPLAY = {
     "kinetic_operations": "Kinetic Operations",
     "information_manipulation": "Information Operations",
     "malign_finance": "Malign Finance",
-    "civil_society_subversion": "Political & Civic Subversion",
+    "civil_society_subversion": "Political and Civil Society Subversion",
 }
 
 ACTOR_DISPLAY = {
@@ -66,22 +66,57 @@ COUNTRY_NAMES = {
     "VN": "Vietnam", "ZA": "South Africa",
 }
 
-# TTP → display parent type (for treemap grouping)
+# TTP → display parent type (for treemap grouping).
+# Keys MUST match the canonical TTP strings emitted by extraction.
+# The full vocab lives in ait_generation/incident-manager taxonomy + prompts;
+# any TTP missing here falls back to "Other" in the treemap.
 _TTP_PARENT = {
-    "network intrusion": "Cyber Operations", "DDoS": "Cyber Operations",
-    "data theft": "Cyber Operations", "destructive attack": "Cyber Operations",
-    "supply chain compromise": "Cyber Operations",
-    "sabotage": "Kinetic Operations", "assassination": "Kinetic Operations",
-    "surveillance": "Kinetic Operations", "jamming": "Kinetic Operations",
-    "inauthentic amplification": "Information Operations",
-    "fabricated content": "Information Operations",
-    "hack-and-leak": "Information Operations", "impersonation": "Information Operations",
-    "covert funding": "Malign Finance", "sanctions evasion": "Malign Finance",
-    "corruption": "Malign Finance",
-    "agent recruitment": "Political & Civic Subversion",
-    "transnational repression": "Political & Civic Subversion",
-    "infiltration": "Political & Civic Subversion",
-    "front organization": "Political & Civic Subversion",
+    # Information Operations
+    "inauthentic news websites": "Information Operations",
+    "false narrative": "Information Operations",
+    "inauthentic accounts": "Information Operations",
+    "algorithm manipulation": "Information Operations",
+    "content fabrication": "Information Operations",
+    "artificial intelligence": "Information Operations",
+    "censorship": "Information Operations",
+    "trusted source co-option": "Information Operations",
+    "narrative laundering": "Information Operations",
+    # Cyber Operations
+    "DDoS attack": "Cyber Operations",
+    "ransomware": "Cyber Operations",
+    "defacement or destruction": "Cyber Operations",
+    "infrastructure intrusion": "Cyber Operations",
+    "malware": "Cyber Operations",
+    "social engineering": "Cyber Operations",
+    "account hijacking": "Cyber Operations",
+    "supply chain attacks": "Cyber Operations",
+    "data theft": "Cyber Operations",
+    "hack-and-leak": "Cyber Operations",
+    # Kinetic Operations
+    "surveillance": "Kinetic Operations",
+    "vandalism": "Kinetic Operations",
+    "sabotage": "Kinetic Operations",
+    "physical threats or harassment": "Kinetic Operations",
+    "drone incursion or airspace violation": "Kinetic Operations",
+    "targeted assassination": "Kinetic Operations",
+    "weaponized migration": "Kinetic Operations",
+    "critical infrastructure attack": "Kinetic Operations",
+    "agent recruitment": "Kinetic Operations",
+    # Political and Civil Society Subversion
+    "political party infiltration": "Political and Civil Society Subversion",
+    "protest mobilization": "Political and Civil Society Subversion",
+    "vote-buying": "Political and Civil Society Subversion",
+    "foreign funding of parties or candidates": "Political and Civil Society Subversion",
+    "unregistered foreign agent": "Political and Civil Society Subversion",
+    "front organization or government-organized NGO": "Political and Civil Society Subversion",
+    "think-tank or academic institute capture": "Political and Civil Society Subversion",
+    "voter suppression": "Political and Civil Society Subversion",
+    # Malign Finance
+    "bribery": "Malign Finance",
+    "money laundering": "Malign Finance",
+    "fraud": "Malign Finance",
+    "shell company": "Malign Finance",
+    "sanctions evasion": "Malign Finance",
 }
 
 COUNTRY_CENTROIDS = {
