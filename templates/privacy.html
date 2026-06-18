@@ -78,7 +78,7 @@
 
   <main class="privacy-body" id="main">
     <h2>Privacy &amp; Data Notice</h2>
-    <p class="effective">Effective: 27 May 2026 &middot; Last reviewed: 27 May 2026</p>
+    <p class="effective">Effective: 27 May 2026 &middot; Last reviewed: 16 June 2026</p>
 
     <div class="notice">
       <strong>About the data in this catalog.</strong>
@@ -254,12 +254,20 @@
         </tr>
       </tbody>
     </table>
+    <p>
+      <strong>No training on AIT data.</strong> We have configured our accounts with the
+      model providers above so that AIT pipeline data is not used to train their models,
+      consistent with each provider's published API data-use policy. We do not consent to
+      AIT data being used for model training by these providers or by any future
+      subprocessor, and we will reflect this in our contractual relationships with them.
+    </p>
 
     <h2>How long we keep data</h2>
     <ul>
       <li>
         <strong>Articles classified irrelevant</strong> are deleted automatically 90 days
-        after ingestion.
+        after ingestion. The 90-day window is reviewed periodically and may be shortened
+        as the pipeline matures.
       </li>
       <li>
         <strong>Articles classified relevant</strong> are retained for as long as they are
@@ -267,8 +275,23 @@
         research function depends on the continued availability of these sources.
       </li>
       <li>
-        <strong>Incident records</strong> are retained indefinitely, subject to ongoing
-        editorial review and to the rectification and erasure rights described below.
+        <strong>Duplicate and near-duplicate articles</strong> are merged into a single
+        incident's source list during pipeline deduplication; surplus duplicates are not
+        retained as separate records.
+      </li>
+      <li>
+        <strong>Incident records</strong> are retained subject to ongoing editorial review.
+        Editors periodically re-check published incidents for continuing accuracy, and we
+        will rectify, restrict, or remove entries where the underlying public reporting has
+        been superseded, retracted, or shown to be inaccurate. Standing erasure and
+        rectification rights are described below.
+      </li>
+      <li>
+        <strong>Inputs retained by AI subprocessors</strong> for trust-and-safety or abuse
+        monitoring are governed by each subprocessor's published retention schedule and the
+        contractual terms we have with them; we do not direct subprocessors to retain
+        copies of pipeline inputs beyond what their service requires, and we have configured
+        their accounts to opt out of any model-training use of our data (see below).
       </li>
       <li>
         <strong>Pipeline embeddings and editorial audit logs</strong> are retained for the
@@ -283,13 +306,24 @@
 
     <h2 id="your-rights">Your rights</h2>
     <p>
-      Where the GDPR or equivalent applicable law gives you rights as a data subject, you
-      can exercise them by emailing
-      <a href="mailto:info@isdglobal.org?subject=AIT%20data%20subject%20request">info@isdglobal.org</a>
-      with the subject line &ldquo;AIT data subject request&rdquo; and a description of what
-      you are asking for. We will acknowledge receipt and respond within one month, or
-      explain why we need longer.
+      Where the GDPR, the UK GDPR, US state privacy laws, or other applicable law gives you
+      rights as a data subject, you can exercise them by contacting ISD's Data Protection
+      Officer using the details below. We will acknowledge receipt and respond within the
+      timeframe required by the law of your jurisdiction (in most cases, one month), in
+      accordance with ISD's internal data-subject-request policy. We may need to verify
+      your identity before disclosing personal data.
     </p>
+    <div class="notice" style="background:#eef4f9; border-left-color:#0068B2; color:#1f3a55;">
+      <strong>Data Protection Officer &mdash; AIT data-subject requests</strong><br>
+      Email: <a href="mailto:dpo@isdglobal.org?subject=AIT%20data%20subject%20request">dpo@isdglobal.org</a>
+      &nbsp;(subject line: &ldquo;AIT data subject request&rdquo;)<br>
+      Post: ISD-US, Suite 285, 1032 15th St. NW, Washington, DC 20005, United States<br>
+      <span style="font-size:13px;">
+        Please describe what right you are exercising (access, rectification, erasure,
+        restriction, objection, portability) and identify the incident, entity, or record
+        your request concerns.
+      </span>
+    </div>
     <p>Available rights include:</p>
     <ul>
       <li><strong>Access</strong> &mdash; a copy of the personal data we process about you.</li>
@@ -354,8 +388,13 @@
 
     <h2>Contact</h2>
     <p>
-      For questions about this notice, or to exercise any right described above, email
-      <a href="mailto:info@isdglobal.org?subject=AIT%20privacy">info@isdglobal.org</a>.
+      <strong>Data-protection matters and data-subject requests:</strong>
+      <a href="mailto:dpo@isdglobal.org?subject=AIT%20data%20subject%20request">dpo@isdglobal.org</a>,
+      or by post to ISD-US, Suite 285, 1032 15th St. NW, Washington, DC 20005, United States.
+    </p>
+    <p>
+      <strong>Editorial corrections to a specific incident</strong> (e.g., factual error in
+      a published entry): <a href="mailto:info@isdglobal.org?subject=AIT%20incident%20correction">info@isdglobal.org</a>.
     </p>
 
     <a class="back-link" href="/">&larr; Back to the tracker</a>
