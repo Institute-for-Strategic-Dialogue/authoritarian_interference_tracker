@@ -1039,6 +1039,14 @@ def ait_admin():
     return redirect(REVIEW_UI_URL)
 
 
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST" and request.form.get("password") == os.environ.get("ADMIN_PASSWORD"):
+        session["admin"] = True
+        return redirect(url_for("index"))
+    return render_template("admin_login.html", err="Incorrect password." if request.method == "POST" else None)
+
+
 # ---------------------------------------------------------------------------
 # Exports
 # ---------------------------------------------------------------------------

@@ -1423,7 +1423,7 @@ function renderList(incidents) {
       : "";
 
     const adminEditLink = window.isAdmin
-      ? `<a href="/ait_admin" class="admin-edit-link" title="Edit in Admin" onclick="event.stopPropagation()">&#9998;</a>` : "";
+      ? `<a href="https://admin.ait.isd.ngo/incidents/${inc.id}" class="admin-edit-link" title="Edit in Admin" target="_blank" rel="noopener" onclick="event.stopPropagation()">&#9998;</a>` : "";
 
     const summarySnippet = (inc.summary || "").substring(0, 200);
 
@@ -1561,7 +1561,7 @@ function openModal(inc) {
     : "N/A";
 
   const adminLink = window.isAdmin
-    ? `<a href="/review/incident/${inc.id}" title="Edit">&#9998; Edit in Review UI</a>` : "";
+    ? `<a href="https://admin.ait.isd.ngo/incidents/${inc.id}" title="Edit" target="_blank" rel="noopener">&#9998; Edit in Review UI</a>` : "";
 
   // Build type/TTP combined line: "Cyber Operations / data theft, network intrusion"
   const typeTtpLine = (inc.tools || []).map(t => {
