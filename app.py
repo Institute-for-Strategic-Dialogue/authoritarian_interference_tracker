@@ -20,6 +20,10 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 IM_URL = os.environ.get("INCIDENT_MANAGER_URL", "http://localhost:6003")
 REVIEW_UI_URL = os.environ.get("REVIEW_UI_URL", "http://localhost:6004")
+# URL the *browser* should hit for the review UI — REVIEW_UI_URL is typically
+# an internal/loopback address, which doesn't resolve from a user's browser.
+# Defaults to REVIEW_UI_URL so dev/local setups still work without setting both.
+REVIEW_UI_PUBLIC_URL = os.environ.get("REVIEW_UI_PUBLIC_URL", REVIEW_UI_URL)
 
 # Persistent HTTP client — reuses connections instead of leaking them
 _http_client = httpx.Client(timeout=30.0, limits=httpx.Limits(max_connections=10, max_keepalive_connections=5))
@@ -453,7 +457,8 @@ def _collect_meta(incidents):
 @app.route("/")
 def index():
     is_admin = session.get("admin", False)
-    return render_template("index.html", is_admin=is_admin)
+    return render_template("index.html", is_admin=is_admin,
+                           review_ui_public_url=REVIEW_UI_PUBLIC_URL)
 
 
 @app.route("/api/config")
@@ -718,6 +723,7 @@ def incident_detail(identifier):
     if "application/json" in (request.headers.get("Accept") or ""):
         return jsonify(inc)
     return render_template("index.html", is_admin=session.get("admin", False),
+                           review_ui_public_url=REVIEW_UI_PUBLIC_URL,
                            prefill_incident=inc)
 
 
@@ -1034,11 +1040,6 @@ def api_entity_network():
         return jsonify({"nodes": [], "edges": []})
 
 
-@app.route("/ait_admin")
-def ait_admin():
-    return redirect(REVIEW_UI_URL)
-
-
 # ---------------------------------------------------------------------------
 # Admin session (so managers can see the per-incident "Edit" links). The
 # actual editing happens in the review-ui; this just toggles a session flag
@@ -1063,14 +1064,6 @@ def admin_login():
 def admin_logout():
     session.pop("admin", None)
     return redirect(url_for("index"))
-
-
-@app.route("/ait_admin/incidents/<incident_id>")
-def ait_admin_incident(incident_id):
-    """Open an incident in the review-ui for editing. Bounce through the
-    public site so the front-end markup doesn't have to know the review-ui's
-    public hostname."""
-    return redirect(f"{REVIEW_UI_URL.rstrip('/')}/incidents/{incident_id}")
 
 
 # ---------------------------------------------------------------------------
