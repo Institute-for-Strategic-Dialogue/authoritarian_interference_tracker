@@ -351,12 +351,11 @@
   <!-- 7. Footer -->
   <footer class="container footnote">
     <div class="tt">Institute for Strategic Dialogue &bull; Authoritarian Interference Tracker</div>
-    {% if is_admin %}<div class="admin-footer"><a href="{{ review_ui_public_url }}" target="_blank" rel="noopener">Admin Panel</a></div>{% endif %}
+    {% if is_admin %}<div class="admin-footer"><a href="/ait_admin">Admin Panel</a></div>{% endif %}
   </footer>
 
   <script>
     window.isAdmin = {{ 'true' if is_admin else 'false' }};
-    window.reviewUiUrl = {{ review_ui_public_url | tojson }};
     {% if prefill_incident %}
     window.prefillIncident = {{ prefill_incident | tojson }};
     {% endif %}
