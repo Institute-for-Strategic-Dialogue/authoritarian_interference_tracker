@@ -1040,40 +1040,6 @@ def ait_admin():
 
 
 # ---------------------------------------------------------------------------
-# Admin session (so managers can see the per-incident "Edit" links). The
-# actual editing happens in the review-ui; this just toggles a session flag
-# the templates use to render the link.
-# ---------------------------------------------------------------------------
-
-@app.route("/admin/login", methods=["GET", "POST"])
-def admin_login():
-    expected = os.environ.get("ADMIN_PASSWORD")
-    if not expected:
-        return "Admin login is not configured.", 503
-    err = None
-    if request.method == "POST":
-        if request.form.get("password", "") == expected:
-            session["admin"] = True
-            return redirect(request.args.get("next") or url_for("index"))
-        err = "Incorrect password."
-    return render_template("admin_login.html", err=err)
-
-
-@app.route("/admin/logout")
-def admin_logout():
-    session.pop("admin", None)
-    return redirect(url_for("index"))
-
-
-@app.route("/ait_admin/incidents/<incident_id>")
-def ait_admin_incident(incident_id):
-    """Open an incident in the review-ui for editing. Bounce through the
-    public site so the front-end markup doesn't have to know the review-ui's
-    public hostname."""
-    return redirect(f"{REVIEW_UI_URL.rstrip('/')}/incidents/{incident_id}")
-
-
-# ---------------------------------------------------------------------------
 # Exports
 # ---------------------------------------------------------------------------
 
