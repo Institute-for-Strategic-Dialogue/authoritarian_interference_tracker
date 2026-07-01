@@ -621,7 +621,7 @@ function renderVolumeChart(rows) {
     const lg = legend.append("g").attr("transform", `translate(${lx}, 0)`);
     const txt = lg.append("text").attr("y", 11).text(a)
       .style("font-size", "11px").style("fill", "#5C6771").style("font-weight", "600")
-      .style("font-family", "'IBM Plex Sans', sans-serif");
+      .style("font-family", "'Inter', sans-serif");
     const tw = txt.node().getComputedTextLength();
     lg.insert("rect", "text").attr("x", -6).attr("y", -1).attr("width", tw + 12)
       .attr("height", 15).attr("rx", 4)
@@ -911,7 +911,7 @@ function renderSankey(countryRows, stackedRows, nodeCounts = {}) {
         .attr("x", cx).attr("text-anchor", "middle")
         .style("font-size", fontSize + "px").style("fill", fill)
         .style("font-weight", fontWeight)
-        .style("font-family", "'IBM Plex Sans', sans-serif")
+        .style("font-family", "'Inter', sans-serif")
         .style("pointer-events", "none");
       textEl.append("tspan").attr("x", cx).attr("dy", "-0.6em").text(line1);
       textEl.append("tspan").attr("x", cx).attr("dy", "1.1em").text(line2);
@@ -933,7 +933,7 @@ function renderSankey(countryRows, stackedRows, nodeCounts = {}) {
         .text(label)
         .style("font-size", fontSize + "px").style("fill", fill)
         .style("font-weight", fontWeight)
-        .style("font-family", "'IBM Plex Sans', sans-serif")
+        .style("font-family", "'Inter', sans-serif")
         .style("pointer-events", "none");
       if (hasRoom) {
         grp.append("text").attr("x", cx).attr("y", cy + 10).attr("dy", "0.35em")
@@ -993,7 +993,7 @@ function getMegaRegion(country) {
 
 function initMap() {
   if (map) return map;
-  map = L.map("map", { scrollWheelZoom: true, worldCopyJump: true }).setView([48, 10], 4);
+  map = L.map("map", { scrollWheelZoom: true, worldCopyJump: true }).setView([25, 0], 2);
 
   L.tileLayer(
     "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -1077,6 +1077,10 @@ function renderMap(countryRows, countryMeta) {
     });
     marker.bindTooltip(`<strong>${country}</strong><br>${tot} incidents`, { direction: "top", offset: [0, -anchor] });
     clusterLayer.addLayer(marker);
+  }
+
+  if (clusterLayer.getLayers().length) {
+    map.fitBounds(clusterLayer.getBounds(), { padding: [40, 40], maxZoom: 5 });
   }
 }
 
@@ -1230,7 +1234,7 @@ function renderStacked(rows) {
       .attr("x", labelW / 2).attr("y", y(tool) + y.bandwidth() / 2 + 4)
       .attr("text-anchor", "middle")
       .style("font-size", "11px").style("fill", "#5C6771").style("font-weight", "600")
-      .style("font-family", "'IBM Plex Sans', sans-serif")
+      .style("font-family", "'Inter', sans-serif")
       .text(tool);
   });
 
@@ -1265,7 +1269,7 @@ function renderStacked(rows) {
     const lg = legend.append("g").attr("transform", `translate(${legendX}, 0)`);
     const txt = lg.append("text").attr("y", 11).text(a)
       .style("font-size", "11px").style("fill", "#5C6771").style("font-weight", "600")
-      .style("font-family", "'IBM Plex Sans', sans-serif");
+      .style("font-family", "'Inter', sans-serif");
     const tw = txt.node().getComputedTextLength();
     lg.insert("rect", "text").attr("x", -6).attr("y", -1).attr("width", tw + 12)
       .attr("height", 15).attr("rx", 4)
@@ -1355,7 +1359,7 @@ function renderTtpTreemap(ttpByType) {
     .style("font-size", d => (d.x1 - d.x0) < 60 ? "0" : "11px")
     .style("fill", d => d.data.name === activeTtp ? "#222" : "#5C6771")
     .style("font-weight", d => d.data.name === activeTtp ? "700" : "500")
-    .style("font-family", "'IBM Plex Sans', sans-serif")
+    .style("font-family", "'Inter', sans-serif")
     .text(d => {
       const w = d.x1 - d.x0;
       if (w < 60) return "";
@@ -1941,7 +1945,7 @@ function renderEntityChord(entities, allPairs) {
     .attr('text-anchor', d => d.angle > Math.PI ? 'end' : null)
     .style('font-size', '11px')
     .style('font-weight', '600')
-    .style('font-family', "'IBM Plex Sans', sans-serif")
+    .style('font-family', "'Inter', sans-serif")
     .style('fill', d => entityRoleColor(top[d.index]))
     .text(d => {
       const e = top[d.index];
@@ -2011,7 +2015,7 @@ function renderEntityChord(entities, allPairs) {
       row.append('text')
         .attr('x', 9 + 7).attr('y', 1)
         .style('font-size', '10.5px')
-        .style('font-family', "'IBM Plex Sans', sans-serif")
+        .style('font-family', "'Inter', sans-serif")
         .style('fill', it.color)
         .style('font-weight', '600')
         .text(it.label);
@@ -2136,7 +2140,7 @@ function _ensureFloatingTip() {
   _floatingTipEl = document.createElement('div');
   _floatingTipEl.className = 'floating-tip';
   _floatingTipEl.style.cssText =
-    'position:fixed;display:none;background:#2c3e50;color:#fff;font-family:"IBM Plex Sans",sans-serif;' +
+    'position:fixed;display:none;background:#2c3e50;color:#fff;font-family:"Inter",sans-serif;' +
     'font-size:12px;line-height:1.4;padding:8px 12px;border-radius:4px;max-width:320px;z-index:999999;' +
     'pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.18);text-align:left;letter-spacing:0;';
   document.body.appendChild(_floatingTipEl);

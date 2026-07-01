@@ -58,8 +58,8 @@
   }
   </script>
 
-  <!-- Fonts: IBM Plex Sans + Space Mono -->
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Fonts: Inter + Space Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
   <!-- Leaflet + MarkerCluster + D3 + D3-Sankey -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -76,34 +76,36 @@
   <a class="skip-link" href="#main">Skip to content</a>
 
   <!-- 1. Header -->
-  <header class="page-header container">
-    <div class="brand">
+  <header class="page-header">
+    <div class="page-header-inner container">
       <div class="brand-row">
-        <h1>AUTHORITARIAN INTERFERENCE TRACKER</h1>
         <div class="logo-area">
           <img src="/static/img/isd-logo.png" alt="ISD" class="isd-logo-img">
         </div>
+        <h1>Authoritarian Interference Tracker</h1>
       </div>
-      <div class="meta-bar">
-        <span id="total-count">0</span> <span>INCIDENTS TRACKED</span>
-        <span class="meta-sep">·</span>
-        <a href="/methodology" class="meta-link">Methodology</a>
-      </div>
-      <p class="intro-blurb">
-        A public catalog of authoritarian interference operations targeting
-        democratic states. Each incident records the attributed state actor,
-        operational type, targets, and source reporting. Use filters below to
-        drill into specific campaigns, and click any incident for full detail.
-      </p>
-      <p class="counts-note">
-        <strong>Counts note:</strong> the headline number is unique incidents
-        matching your filters. Charts below count <em>activity slices</em>
-        (per actor, per year, per type), so a single multi-year, multi-actor
-        incident can appear several times across a chart. Chart totals will
-        usually exceed the headline — that's by design.
-      </p>
     </div>
   </header>
+  <section class="page-intro container">
+    <div class="meta-bar">
+      <span id="total-count">0</span> <span>INCIDENTS TRACKED</span>
+      <span class="meta-sep">·</span>
+      <a href="/methodology" class="meta-link">Methodology</a>
+    </div>
+    <p class="intro-blurb">
+      A public catalog of authoritarian interference operations targeting
+      democratic states. Each incident records the attributed state actor,
+      operational type, targets, and source reporting. Use filters below to
+      drill into specific campaigns, and click any incident for full detail.
+    </p>
+    <p class="counts-note">
+      <strong>Counts note:</strong> the headline number is unique incidents
+      matching your filters. Charts below count <em>activity slices</em>
+      (per actor, per year, per type), so a single multi-year, multi-actor
+      incident can appear several times across a chart. Chart totals will
+      usually exceed the headline — that's by design.
+    </p>
+  </section>
 
   <!-- 2. Filter bar (sticky) -->
   <div class="filter-bar-wrap">

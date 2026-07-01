@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Entity Network — Authoritarian Interference Tracker</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
   <link rel="stylesheet" href="/static/css/styles.css"/>
   <style>
@@ -22,7 +22,7 @@
     #network-graph svg { width: 100%; height: 100%; }
 
     .node-label {
-      font-family: 'IBM Plex Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 11px;
       fill: #ccc;
       pointer-events: none;
@@ -105,20 +105,22 @@
   </style>
 </head>
 <body>
-  <header class="page-header container">
-    <div class="brand">
+  <header class="page-header">
+    <div class="page-header-inner container">
       <div class="brand-row">
-        <h1>AUTHORITARIAN INTERFERENCE TRACKER</h1>
         <div class="logo-area">
           <img src="/static/img/isd-logo.png" alt="ISD" class="isd-logo-img">
         </div>
-      </div>
-      <div class="meta-bar">
-        <a href="/" class="back-link">&larr; Back to Dashboard</a>
-        <span style="margin-left: 16px;">ENTITY NETWORK</span>
+        <h1><a href="/" style="color:inherit; text-decoration:none;">Authoritarian Interference Tracker</a></h1>
       </div>
     </div>
   </header>
+  <div class="container" style="padding-top: 1rem;">
+    <div class="meta-bar">
+      <a href="/" class="back-link">&larr; Back to Dashboard</a>
+      <span style="margin-left: 16px;">ENTITY NETWORK</span>
+    </div>
+  </div>
 
   <main class="container" style="padding: 16px 24px 60px;">
     <div class="network-container">

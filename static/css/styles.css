@@ -52,7 +52,7 @@
   --space-8: 64px;
 
   /* ---------- Type scale ---------- */
-  --font-sans:  'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-sans:  'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   --font-mono:  'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --t-display:  54px / 1.05 var(--font-sans);
   --t-h1:       38px / 1.15 var(--font-sans);
@@ -94,33 +94,51 @@
 html, body {
   margin: 0; padding: 0;
   color: var(--text-strong);
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
 }
-/* Warm paper canvas + faint 32px dot grid (matches the ISD MEL toolkit
-   visual texture). The grid lives on <body> so it tiles continuously
-   under every section; cards and the footer paint their own surfaces
-   on top of it. */
+/* Clean white canvas — matches isdglobal.org */
 body {
-  background:
-    radial-gradient(circle at 20px 20px, rgba(180, 178, 177, 0.22) 1.2px, transparent 1.6px)
-      0 0 / 32px 32px,
-    var(--surface-paper);
-  background-attachment: fixed;
+  background: var(--surface-white);
 }
 
 .container { max-width: 1440px; margin: 0 auto; padding: 0 1rem; }
 
-/* ---- Header ---- */
-.page-header { padding-top: 1.25rem; padding-bottom: 0.5rem; }
-.brand-row { display: flex; align-items: center; justify-content: space-between; }
-.brand h1 {
-  margin: 0; letter-spacing: .12em; text-transform: uppercase;
-  font-weight: 700; font-size: clamp(18px, 2.6vw, 28px);
+/* ---- Header (ISD-style solid red top band) ---- */
+.page-header {
+  background: var(--isd-red);
+  color: var(--fg-inverse);
+  padding: 0;
 }
+.page-header-inner {
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
+}
+.brand-row {
+  display: flex; align-items: center; gap: 1.25rem;
+}
+.page-header h1 {
+  margin: 0;
+  color: var(--fg-inverse);
+  font-weight: 700;
+  font-size: clamp(20px, 2.4vw, 28px);
+  letter-spacing: .01em;
+  text-transform: none;
+  line-height: 1.15;
+}
+.page-header a { color: inherit; }
+.page-header .meta-bar { color: var(--fg-inverse); opacity: .9; }
+.page-header .meta-bar a { color: inherit; border-bottom-color: rgba(255,255,255,.4); }
 .isd-logo-img {
-  height: 56px; width: auto; opacity: .85; transition: opacity 150ms;
+  height: 52px; width: auto;
+  filter: brightness(0) invert(1);  /* white logo on red bar */
+  transition: opacity 150ms;
 }
-.isd-logo-img:hover { opacity: 1; }
+.isd-logo-img:hover { opacity: .85; }
+
+.page-intro {
+  padding-top: 1.25rem;
+  padding-bottom: .5rem;
+}
 .meta-bar {
   font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .08em;
   display: flex; gap: .5rem; align-items: center; opacity: .9; margin-top: .25rem;
@@ -161,7 +179,7 @@ body {
   transform: translateX(-50%);
   background: #2c3e50;
   color: #fff;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 400;
   line-height: 1.4;
@@ -192,7 +210,7 @@ body {
 /* ---- Filter bar (sticky) ---- */
 .filter-bar-wrap {
   position: sticky; top: 0; z-index: 10000;
-  background: rgba(250, 246, 242, 0.97); backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-color);
   padding: .75rem 0;
 }
@@ -405,7 +423,7 @@ body {
 .entity-tbl .ent-role--source { background: rgba(92,103,113,.12); color: #5c6771; }
 .entity-tbl .ent-role--tool { background: rgba(155,89,182,.12); color: #9b59b6; }
 .entity-tbl .ent-type { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; background: rgba(0,0,0,.05); color: var(--text-muted); }
-#entity-graph svg .node-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; fill: var(--text-muted); pointer-events: none; }
+#entity-graph svg .node-label { font-family: 'Inter', sans-serif; font-size: 10px; fill: var(--text-muted); pointer-events: none; }
 
 /* ---- Sankey ---- */
 .viz-sankey #sankey-chart { padding: .5rem; overflow: hidden; }
@@ -550,7 +568,7 @@ body {
   background: #f5f0e8; max-width: 860px; width: 92%; max-height: 85vh;
   overflow-y: auto; border-radius: 4px; padding: 2.5rem 2rem 2rem;
   position: relative; box-shadow: 0 0 50px rgba(0,0,0,.4);
-  font-family: 'IBM Plex Sans', sans-serif; color: #222;
+  font-family: 'Inter', sans-serif; color: #222;
 }
 .modal-close {
   position: absolute; top: 12px; right: 16px; background: none; border: none;
@@ -671,7 +689,7 @@ body {
   background: var(--surface-tint);
   color: var(--text-muted);
   font-size: 13px;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 .footer-inner { display: flex; flex-direction: column; gap: 1.25rem; }
 .footer-row {
