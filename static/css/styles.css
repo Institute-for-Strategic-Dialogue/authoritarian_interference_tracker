@@ -321,12 +321,13 @@ body {
   padding: 0 0 8px 12px;                                          /* isdglobal.org H2 padding */
   border-left:   9.6px solid var(--card-accent, var(--isd-purple));/* isdglobal.org H2 border widths */
   border-bottom: 1.6px solid var(--card-accent, var(--isd-purple));
-  text-transform: uppercase; letter-spacing: .12em; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700;
   display: flex; align-items: baseline; gap: .5rem;
-  font-size: .95rem; color: var(--fg-1);
+  font-size: 24px; line-height: 28.8px;
+  color: var(--isd-dark-grey);
   margin-bottom: .75rem;
 }
-.card-title .sub { font-size: 11px; opacity: .6; letter-spacing: .08em; }
+.card-title .sub { font-size: 13px; opacity: .7; letter-spacing: .04em; }
 
 /* ---- Viz grid ---- */
 .viz-grid {
@@ -819,16 +820,21 @@ body {
   }
 }
 
-/* ---- ISD-style rotating heading underlines on prose sub-pages
-   (matches isdglobal.org h2 treatment: 8px colored border-bottom,
-   cycling through the brand palette by section order). ---- */
+/* ---- ISD-style rotating heading treatment on prose sub-pages
+   (matches isdglobal.org h2 exactly: 9.6px left + 1.6px bottom border,
+   uppercase 24px in ISD dark grey, cycling through brand palette). ---- */
 .methodology-body h2,
 .privacy-body h2,
 .legal-body h2 {
-  display: table;
-  padding-bottom: .35rem;
+  display: block;
+  padding: 0 0 8px 12px;
+  margin-top: 2.5rem;
   margin-bottom: 1rem;
-  border-bottom: 8px solid var(--isd-purple);
+  border-left:   9.6px solid var(--isd-purple);
+  border-bottom: 1.6px solid var(--isd-purple);
+  font-size: 24px; line-height: 28.8px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--isd-dark-grey);
 }
 .methodology-body h2:nth-of-type(5n+1),
 .privacy-body    h2:nth-of-type(5n+1),
