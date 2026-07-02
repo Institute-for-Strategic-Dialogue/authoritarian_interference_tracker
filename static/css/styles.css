@@ -316,18 +316,18 @@ body {
   box-shadow: none;
   position: relative;
   margin-bottom: 1rem;
-  padding: .85rem 1rem 1rem;
+  padding: 0 1rem 1rem;                                    /* no top pad: title fills the top edge */
 }
 .card-dark { background: rgba(255, 255, 255, 0.55); }
 .card-title {
-  padding: 0 0 6px 10px;
+  margin: 0 -1rem .75rem;                                  /* extend out to card's L/R edges */
+  padding: 12px 1rem 8px calc(1rem + 2px);                 /* internal spacing; +2px so text clears border */
   border-left:   9.6px solid var(--card-accent, var(--isd-purple));
   border-bottom: 1.6px solid var(--card-accent, var(--isd-purple));
   text-transform: uppercase; letter-spacing: .10em; font-weight: 700;
   display: flex; align-items: baseline; gap: .5rem;
   font-size: 14px; line-height: 1.2;
   color: var(--isd-dark-grey);
-  margin-bottom: .75rem;
 }
 .card-title .sub { font-size: 11px; opacity: .6; letter-spacing: .06em; text-transform: none; }
 

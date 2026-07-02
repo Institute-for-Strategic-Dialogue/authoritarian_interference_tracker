@@ -70,7 +70,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <link rel="stylesheet" href="/static/css/styles.css?v=20260701-8"/>
+  <link rel="stylesheet" href="/static/css/styles.css?v=20260701-9"/>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -185,8 +185,8 @@
     </div>
 
     <!-- TTP treemap (thin, full width) -->
-    <section class="card" style="margin-top:.5rem;padding:4px 8px;--card-accent: var(--isd-blue);">
-      <div class="card-title" style="font-size:11px;margin-bottom:2px;">
+    <section class="card" style="margin-top:.5rem;--card-accent: var(--isd-blue);">
+      <div class="card-title">
         TACTICS &amp; TECHNIQUES <span class="sub">grouped by incident type, sized by frequency</span>
         <span class="info-tip" tabindex="0"
               data-tip="A TTP is the specific tradecraft used (e.g. 'inauthentic amplification'). Each TTP is grouped under its parent incident type. The data layer keeps the parent type attached whenever a TTP is set."
@@ -360,6 +360,6 @@
     window.prefillIncident = {{ prefill_incident | tojson }};
     {% endif %}
   </script>
-  <script src="/static/js/app.js?v=20260701-8"></script>
+  <script src="/static/js/app.js?v=20260701-9"></script>
 </body>
 </html>
