@@ -307,17 +307,22 @@ body {
 }
 .btn-jump:hover { background: var(--primary-color); color: white; }
 
-/* ---- Cards ---- */
+/* ---- Cards (flat ISD block style) ---- */
 .card {
-  background: #fff; border-radius: var(--card-radius);
-  box-shadow: var(--shadow); border: 1px solid var(--border-color);
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 0;                                       /* flat: no rounded corners */
+  box-shadow: none;                                       /* flat: no drop shadow */
   position: relative; overflow: hidden;
 }
 .card-dark { background: #fff; } /* keep white in light theme */
 .card-title {
-  padding: .75rem 1rem; border-bottom: 1px solid var(--border-color);
+  padding: .75rem 1rem;
+  border-left:   6px solid var(--card-accent, var(--isd-purple));   /* ISD H2 corner */
+  border-bottom: 6px solid var(--card-accent, var(--isd-purple));   /* anchor */
   text-transform: uppercase; letter-spacing: .12em; font-weight: 600;
   display: flex; align-items: baseline; gap: .5rem; font-size: .85rem;
+  color: var(--fg-1);
 }
 .card-title .sub { font-size: 11px; opacity: .6; letter-spacing: .08em; }
 
