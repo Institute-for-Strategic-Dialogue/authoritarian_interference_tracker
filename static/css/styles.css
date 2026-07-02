@@ -318,16 +318,16 @@ body {
 }
 .card-dark { background: transparent; }
 .card-title {
-  padding: 0 0 8px 12px;                                          /* isdglobal.org H2 padding */
-  border-left:   9.6px solid var(--card-accent, var(--isd-purple));/* isdglobal.org H2 border widths */
+  padding: 0 0 6px 10px;
+  border-left:   9.6px solid var(--card-accent, var(--isd-purple));
   border-bottom: 1.6px solid var(--card-accent, var(--isd-purple));
-  text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .10em; font-weight: 700;
   display: flex; align-items: baseline; gap: .5rem;
-  font-size: 24px; line-height: 28.8px;
+  font-size: 14px; line-height: 1.2;
   color: var(--isd-dark-grey);
   margin-bottom: .75rem;
 }
-.card-title .sub { font-size: 13px; opacity: .7; letter-spacing: .04em; }
+.card-title .sub { font-size: 11px; opacity: .6; letter-spacing: .06em; text-transform: none; }
 
 /* ---- Viz grid ---- */
 .viz-grid {
