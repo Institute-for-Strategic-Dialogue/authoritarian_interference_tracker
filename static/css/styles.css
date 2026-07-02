@@ -9,7 +9,14 @@
   --isd-purple:     #4C4193;    /* accent */
   --isd-blue:       #0068B2;    /* accent */
   --isd-coral:      #E76863;    /* accent */
+  --isd-mint:       #56C0AA;    /* accent (ISD mint/teal) */
   --isd-light-grey: #B4B2B1;    /* dividers, muted */
+
+  /* ---------- ISD interactive palette ---------- */
+  --isd-link-blue:      #1863DC;    /* body-text link colour on isdglobal.org */
+  --isd-pink-tint:      #FFC1D8;    /* pale red-tint hover background */
+  --isd-pink-hover-bg:  #F3CBDA;    /* main-nav hover background */
+  --isd-surface-cool:   #F7F8F9;    /* cool light-grey card surface */
 
   /* ---------- Surfaces ---------- */
   --surface-paper: #FAF6F2;     /* warm off-white canvas */
@@ -95,6 +102,7 @@ html, body {
   margin: 0; padding: 0;
   color: var(--text-strong);
   font-family: 'Inter', system-ui, sans-serif;
+  font-size: 17px;
 }
 /* Warm paper canvas + faint 32px dot grid (matches the ISD MEL toolkit
    visual texture). The grid lives on <body> so it tiles continuously
@@ -251,7 +259,11 @@ body {
   user-select: none; letter-spacing: .02em; background: white;
   text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 220px;
 }
-.pill:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.pill:hover {
+  transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  background: var(--isd-pink-tint); border-color: var(--isd-red);
+}
+.pill:hover.active { background: inherit; }  /* keep active pill's own colour */
 .pill.active { color: #fff !important; }
 
 /* Selects and number inputs */
@@ -485,11 +497,14 @@ body {
 .list-section #list { padding: .75rem; }
 
 .incident {
-  border: 1px solid #eee; border-radius: .5rem;
-  padding: .65rem .75rem; margin-bottom: .6rem; transition: background 150ms;
+  border: 1px solid #eee;
+  border-left: 5px solid var(--card-accent, var(--isd-light-grey));
+  border-radius: 0;                                       /* sharp corners: ISD block feel */
+  padding: .65rem .75rem .65rem .85rem; margin-bottom: .6rem;
+  transition: background 150ms, border-left-color 150ms;
   position: relative;
 }
-.incident:hover { background: #f0f4f8; }
+.incident:hover { background: var(--isd-pink-tint); }
 .incident .title { font-weight: 600; margin-bottom: .25rem; cursor: pointer; }
 .incident .title:hover { color: var(--primary-color); }
 .incident .meta {
@@ -796,3 +811,35 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---- ISD-style rotating heading underlines on prose sub-pages
+   (matches isdglobal.org h2 treatment: 8px colored border-bottom,
+   cycling through the brand palette by section order). ---- */
+.methodology-body h2,
+.privacy-body h2,
+.legal-body h2 {
+  display: table;
+  padding-bottom: .35rem;
+  margin-bottom: 1rem;
+  border-bottom: 8px solid var(--isd-purple);
+}
+.methodology-body h2:nth-of-type(5n+1),
+.privacy-body    h2:nth-of-type(5n+1),
+.legal-body      h2:nth-of-type(5n+1) { border-bottom-color: var(--isd-red); }
+.methodology-body h2:nth-of-type(5n+2),
+.privacy-body    h2:nth-of-type(5n+2),
+.legal-body      h2:nth-of-type(5n+2) { border-bottom-color: var(--isd-coral); }
+.methodology-body h2:nth-of-type(5n+3),
+.privacy-body    h2:nth-of-type(5n+3),
+.legal-body      h2:nth-of-type(5n+3) { border-bottom-color: var(--isd-blue); }
+.methodology-body h2:nth-of-type(5n+4),
+.privacy-body    h2:nth-of-type(5n+4),
+.legal-body      h2:nth-of-type(5n+4) { border-bottom-color: var(--isd-purple); }
+.methodology-body h2:nth-of-type(5n),
+.privacy-body    h2:nth-of-type(5n),
+.legal-body      h2:nth-of-type(5n)   { border-bottom-color: var(--isd-mint); }
+
+/* Bump prose comfort on the reading pages to match isdglobal.org */
+.methodology-body,
+.privacy-body,
+.legal-body { font-size: 17px; }

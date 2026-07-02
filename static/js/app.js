@@ -1399,6 +1399,8 @@ function renderList(incidents) {
   incidents.forEach(inc => {
     const d = document.createElement("div");
     d.className = "incident";
+    const primaryActor = (inc.actors || [])[0];
+    if (primaryActor) d.style.setProperty("--card-accent", actorColor(primaryActor));
 
     // Year range display
     const startYr = inc.start_year || "?";
