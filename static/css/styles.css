@@ -96,49 +96,33 @@ html, body {
   color: var(--text-strong);
   font-family: 'Inter', system-ui, sans-serif;
 }
-/* Clean white canvas — matches isdglobal.org */
+/* Warm paper canvas + faint 32px dot grid (matches the ISD MEL toolkit
+   visual texture). The grid lives on <body> so it tiles continuously
+   under every section; cards and the footer paint their own surfaces
+   on top of it. */
 body {
-  background: var(--surface-white);
+  background:
+    radial-gradient(circle at 20px 20px, rgba(180, 178, 177, 0.22) 1.2px, transparent 1.6px)
+      0 0 / 32px 32px,
+    var(--surface-paper);
+  background-attachment: fixed;
 }
 
 .container { max-width: 1440px; margin: 0 auto; padding: 0 1rem; }
 
-/* ---- Header (ISD-style solid red top band) ---- */
-.page-header {
-  background: var(--isd-red);
-  color: var(--fg-inverse);
-  padding: 0;
+/* ---- Header ---- */
+.page-header { padding-top: 1.25rem; padding-bottom: 0.5rem; }
+.brand-row { display: flex; align-items: center; justify-content: space-between; }
+.brand h1 {
+  margin: 0; letter-spacing: .12em; text-transform: uppercase;
+  font-weight: 700; font-size: clamp(18px, 2.6vw, 28px);
+  color: var(--isd-red);
 }
-.page-header-inner {
-  padding-top: 1.25rem;
-  padding-bottom: 1.25rem;
-}
-.brand-row {
-  display: flex; align-items: center; gap: 1.25rem;
-}
-.page-header h1 {
-  margin: 0;
-  color: var(--fg-inverse);
-  font-weight: 700;
-  font-size: clamp(20px, 2.4vw, 28px);
-  letter-spacing: .01em;
-  text-transform: none;
-  line-height: 1.15;
-}
-.page-header a { color: inherit; }
-.page-header .meta-bar { color: var(--fg-inverse); opacity: .9; }
-.page-header .meta-bar a { color: inherit; border-bottom-color: rgba(255,255,255,.4); }
+.brand h1 a { color: inherit; text-decoration: none; }
 .isd-logo-img {
-  height: 52px; width: auto;
-  filter: brightness(0) invert(1);  /* white logo on red bar */
-  transition: opacity 150ms;
+  height: 56px; width: auto; opacity: .85; transition: opacity 150ms;
 }
-.isd-logo-img:hover { opacity: .85; }
-
-.page-intro {
-  padding-top: 1.25rem;
-  padding-bottom: .5rem;
-}
+.isd-logo-img:hover { opacity: 1; }
 .meta-bar {
   font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .08em;
   display: flex; gap: .5rem; align-items: center; opacity: .9; margin-top: .25rem;
@@ -210,7 +194,7 @@ body {
 /* ---- Filter bar (sticky) ---- */
 .filter-bar-wrap {
   position: sticky; top: 0; z-index: 10000;
-  background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(8px);
+  background: rgba(250, 246, 242, 0.97); backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-color);
   padding: .75rem 0;
 }
