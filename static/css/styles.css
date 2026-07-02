@@ -307,16 +307,18 @@ body {
 }
 .btn-jump:hover { background: var(--primary-color); color: white; }
 
-/* ---- Cards (transparent, ISD-style: title is the only frame) ---- */
+/* ---- Cards (tinted-glass: semi-opaque white lets the dot grid bleed
+   through faintly at the edges while chart content gets contrast) ---- */
 .card {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.55);
   border: none;
   border-radius: 0;
   box-shadow: none;
   position: relative;
   margin-bottom: 1rem;
+  padding: .85rem 1rem 1rem;
 }
-.card-dark { background: transparent; }
+.card-dark { background: rgba(255, 255, 255, 0.55); }
 .card-title {
   padding: 0 0 6px 10px;
   border-left:   9.6px solid var(--card-accent, var(--isd-purple));
