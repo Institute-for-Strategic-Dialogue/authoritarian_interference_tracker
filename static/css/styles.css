@@ -152,6 +152,14 @@ body {
 }
 .counts-note strong { color: #2c3e50; }
 .counts-note em { font-style: italic; color: #2c3e50; }
+.intro-disclaimer {
+  font-size: 12.5px; line-height: 1.5; color: #5C4A1F;
+  margin: .5rem 0 0;
+  padding: .6rem .85rem; border-left: 3px solid #D4A843;
+  background: #fff7e6; border-radius: 3px;
+}
+.intro-disclaimer strong { color: #7A5A15; }
+.intro-disclaimer a { color: var(--isd-link-blue, #1863DC); }
 .info-tip {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center;

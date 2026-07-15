@@ -70,7 +70,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <link rel="stylesheet" href="/static/css/styles.css?v=20260701-9"/>
+  <link rel="stylesheet" href="/static/css/styles.css?v=20260715-1"/>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -90,10 +90,13 @@
         <a href="/methodology" class="meta-link">Methodology</a>
       </div>
       <p class="intro-blurb">
-        A public catalog of authoritarian interference operations targeting
-        democratic states. Each incident records the attributed state actor,
-        operational type, targets, and source reporting. Use filters below to
-        drill into specific campaigns, and click any incident for full detail.
+        The Authoritarian Interference Tracker (AIT) is an interactive,
+        open-source database that catalogs publicly documented incidents of
+        state-sponsored interference carried out by Russia, China, and Iran
+        in Europe and North America. Use the filters below to single out
+        specific incidents according to their type or location or to explore
+        overarching trends. Click on any incident for more details and for
+        their respective sources.
       </p>
       <p class="counts-note">
         <strong>Counts note:</strong> the headline number is unique incidents
@@ -101,6 +104,20 @@
         (per actor, per year, per type), so a single multi-year, multi-actor
         incident can appear several times across a chart. Chart totals will
         usually exceed the headline — that's by design.
+      </p>
+      <p class="intro-disclaimer">
+        <strong>Disclaimer.</strong> From 2017 to 2025, the AIT was maintained
+        at the Alliance for Securing Democracy (ASD), an initiative that was
+        housed at the German Marshall Fund of the United States. Following
+        ASD&rsquo;s merger with ISD-US in January 2026, the AIT is now an
+        ISD-US tool. ISD has recently updated the tool&rsquo;s methodology,
+        added a new threat actor (Iran), and overhauled its preexisting
+        dataset. Currently, the Tracker&rsquo;s dataset is updated from 2022
+        to the present day; we are still working to backfill gaps in the
+        dataset from 2014 through 2021. If you think we missed an incident or
+        believe an incident is inaccurate, out of context, or should be
+        corrected or withdrawn, please email
+        <a href="mailto:info@isdglobal.org?subject=AIT%20incident%20correction">info@isdglobal.org</a>.
       </p>
     </div>
   </header>
@@ -360,6 +377,6 @@
     window.prefillIncident = {{ prefill_incident | tojson }};
     {% endif %}
   </script>
-  <script src="/static/js/app.js?v=20260701-9"></script>
+  <script src="/static/js/app.js?v=20260715-1"></script>
 </body>
 </html>
