@@ -965,7 +965,7 @@ const MEGA_REGIONS = {
 
 const SUB_REGIONS = {
   "Western Europe":    { lat: 48.5, lon: 2, countries: ["France","Germany","Belgium","Netherlands","Luxembourg","Austria","Switzerland","Liechtenstein"] },
-  "Eastern Europe":    { lat: 50, lon: 25, countries: ["Poland","Czech Republic","Slovakia","Hungary","Romania","Bulgaria","Moldova","Ukraine","Belarus"] },
+  "Eastern Europe":    { lat: 50, lon: 25, countries: ["Poland","Czechia","Slovakia","Hungary","Romania","Bulgaria","Moldova","Ukraine","Belarus"] },
   "Nordic":            { lat: 62, lon: 15, countries: ["Sweden","Norway","Finland","Denmark","Iceland"] },
   "Baltic":            { lat: 57, lon: 24, countries: ["Estonia","Latvia","Lithuania"] },
   "Southern Europe":   { lat: 41, lon: 14, countries: ["Italy","Spain","Portugal","Greece","Malta","Cyprus","Croatia","Slovenia","Montenegro","Albania","North Macedonia","Serbia","Bosnia and Herzegovina","Kosovo"] },
