@@ -111,6 +111,7 @@ _TTP_PARENT = {
     "front organization or government-organized NGO": "Political and Civil Society Subversion",
     "think-tank or academic institute capture": "Political and Civil Society Subversion",
     "voter suppression": "Political and Civil Society Subversion",
+    "transnational repression": "Political and Civil Society Subversion",
     # Malign Finance
     "bribery": "Malign Finance",
     "money laundering": "Malign Finance",
