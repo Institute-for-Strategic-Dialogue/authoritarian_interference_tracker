@@ -160,6 +160,52 @@ body {
 }
 .intro-disclaimer strong { color: #7A5A15; }
 .intro-disclaimer a { color: var(--isd-link-blue, #1863DC); }
+
+/* Cookie consent banner (loaded by static/js/consent.js) */
+#consent-banner {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1500;
+  background: #1c2530; color: #f4f6f8;
+  border-top: 3px solid var(--isd-red, #C7074D);
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, .28);
+  font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.5;
+}
+.consent-inner {
+  max-width: 1180px; margin: 0 auto; padding: .95rem 1.25rem;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem;
+}
+.consent-msg { margin: 0; flex: 1 1 340px; color: #f4f6f8; }
+.consent-msg strong { color: #fff; }
+.consent-msg a { color: #9cc7ff; border-bottom: 1px solid currentColor; }
+.consent-msg a:hover { color: #fff; }
+.consent-actions { display: flex; gap: .55rem; flex: 0 0 auto; }
+.consent-btn {
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+  padding: .55rem 1.1rem; border-radius: 2px; cursor: pointer;
+  border: 1px solid transparent; transition: background .15s, border-color .15s, color .15s;
+}
+.consent-btn--accept {
+  background: var(--isd-red, #C7074D); color: #fff; border-color: var(--isd-red, #C7074D);
+}
+.consent-btn--accept:hover { background: #a80640; border-color: #a80640; }
+.consent-btn--decline {
+  background: transparent; color: #f4f6f8; border-color: #6b7580;
+}
+.consent-btn--decline:hover { background: rgba(255, 255, 255, .08); border-color: #f4f6f8; }
+.consent-btn:focus-visible { outline: 2px solid #9cc7ff; outline-offset: 2px; }
+
+@media (max-width: 560px) {
+  .consent-inner { padding: .85rem 1rem; }
+  .consent-actions { width: 100%; }
+  .consent-btn { flex: 1 1 auto; }
+}
+
+.cookie-pref-link {
+  background: none; border: none; padding: 0; font: inherit;
+  color: var(--isd-link-blue, #1863DC); cursor: pointer;
+  text-decoration: underline;
+}
+.cookie-pref-link:hover { color: var(--isd-red, #C7074D); }
 .info-tip {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center;

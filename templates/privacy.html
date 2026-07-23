@@ -4,14 +4,8 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VNQ6ZEYEEQ"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-VNQ6ZEYEEQ');
-  </script>
+  <!-- Google Analytics (loaded only after user consent — see /static/js/consent.js) -->
+  <script defer src="/static/js/consent.js?v=20260722-1"></script>
 
   <title>Privacy &amp; Data Notice &middot; Authoritarian Interference Tracker</title>
   <meta name="description" content="Privacy and data-protection notice for the Authoritarian Interference Tracker, including subprocessors, lawful bases, automated processing, retention, and data-subject rights.">
@@ -30,7 +24,7 @@
   <meta name="twitter:description" content="Privacy and data-protection notice for the Authoritarian Interference Tracker.">
   <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}/static/img/isd-logo.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/styles.css?v=20260710-1"/>
+  <link rel="stylesheet" href="/static/css/styles.css?v=20260722-1"/>
   <style>
     .privacy-body {
       max-width: 820px; margin: 2rem auto; padding: 0 1.5rem;
@@ -127,19 +121,18 @@
       (IP address, requested URL, user-agent, timestamp) are retained briefly for
       operational and security purposes.
     </p>
-    <p>
-      The public pages load Google Analytics (gtag.js, measurement ID
+    <p id="analytics">
+      The public pages offer Google Analytics (gtag.js, measurement ID
       <code>G-VNQ6ZEYEEQ</code>) so that ISD can understand aggregate usage of the tool
       &mdash; how many people visit, which pages they read, and which countries traffic
-      comes from. Google Analytics sets first-party cookies (<code>_ga</code>,
-      <code>_ga_&lt;id&gt;</code>) and passes an IP-address-derived location to Google as
-      a data processor. We do not use Google Analytics data for advertising, remarketing,
-      or profiling of individual visitors, and we do not link analytics data to any
-      account. If you would rather not be counted, browser-level protections
-      (Do-Not-Track headers, tracking-protection features, or ad blockers such as uBlock
-      Origin) all block the request; you can also install Google&rsquo;s
-      <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Analytics
-      opt-out add-on</a>.
+      comes from. <strong>Analytics only runs if you accept the consent banner shown on
+      your first visit.</strong> If you accept, Google Analytics sets first-party cookies
+      (<code>_ga</code>, <code>_ga_&lt;id&gt;</code>) and passes an IP-address-derived
+      location to Google as a data processor. We do not use Google Analytics data for
+      advertising, remarketing, or profiling of individual visitors, and we do not link
+      analytics data to any account. You can change your choice at any time:
+      <button type="button" class="cookie-pref-link" onclick="if(window.aitResetConsent){window.aitResetConsent();}else{try{localStorage.removeItem('ait_analytics_consent');}catch(e){}location.reload();}">manage
+      cookie preferences</button>.
     </p>
 
     <h2>What we process and where it comes from</h2>

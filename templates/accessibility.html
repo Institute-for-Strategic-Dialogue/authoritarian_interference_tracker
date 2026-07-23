@@ -4,14 +4,8 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VNQ6ZEYEEQ"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-VNQ6ZEYEEQ');
-  </script>
+  <!-- Google Analytics (loaded only after user consent — see /static/js/consent.js) -->
+  <script defer src="/static/js/consent.js?v=20260722-1"></script>
 
   <title>Accessibility Statement &middot; Authoritarian Interference Tracker</title>
   <meta name="description" content="Accessibility statement and feedback channels for the Authoritarian Interference Tracker.">
@@ -31,7 +25,7 @@
   <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}/static/img/isd-logo.png">
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/styles.css?v=20260701-3"/>
+  <link rel="stylesheet" href="/static/css/styles.css?v=20260722-1"/>
   <style>
     .legal-body {
       max-width: 820px; margin: 2rem auto; padding: 0 1.5rem;

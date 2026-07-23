@@ -4,14 +4,8 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VNQ6ZEYEEQ"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-VNQ6ZEYEEQ');
-  </script>
+  <!-- Google Analytics (loaded only after user consent — see /static/js/consent.js) -->
+  <script defer src="/static/js/consent.js?v=20260722-1"></script>
 
   {% set og_title = prefill_incident.title if prefill_incident else "Authoritarian Interference Tracker" %}
   {% set og_desc = prefill_incident.summary[:200] if prefill_incident and prefill_incident.summary else "A catalog of documented authoritarian interference operations targeting democratic states — cyber, kinetic, information, finance, political, and economic." %}
@@ -80,7 +74,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <link rel="stylesheet" href="/static/css/styles.css?v=20260720-1"/>
+  <link rel="stylesheet" href="/static/css/styles.css?v=20260722-1"/>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -387,6 +381,6 @@
     window.prefillIncident = {{ prefill_incident | tojson }};
     {% endif %}
   </script>
-  <script src="/static/js/app.js?v=20260720-1"></script>
+  <script src="/static/js/app.js?v=20260722-1"></script>
 </body>
 </html>
