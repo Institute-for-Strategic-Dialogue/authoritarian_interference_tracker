@@ -3,6 +3,16 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VNQ6ZEYEEQ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-VNQ6ZEYEEQ');
+  </script>
+
   <title>Privacy &amp; Data Notice &middot; Authoritarian Interference Tracker</title>
   <meta name="description" content="Privacy and data-protection notice for the Authoritarian Interference Tracker, including subprocessors, lawful bases, automated processing, retention, and data-subject rights.">
   <link rel="canonical" href="{{ request.url }}">
@@ -111,11 +121,25 @@
 
     <h2>What this site is</h2>
     <p>
-      The Tracker is a research and journalism catalog. It does not provide a service to
-      visitors in the consumer sense and does not require an account. The public site has
-      no analytics, no advertising, no marketing cookies, and no third-party trackers.
-      Standard server logs (IP address, requested URL, user-agent, timestamp) are retained
-      briefly for operational and security purposes.
+      The AIT is a research and journalism catalog. It does not provide a service to
+      visitors in the consumer sense and does not require an account. The public site
+      carries no advertising and no marketing or profiling cookies. Standard server logs
+      (IP address, requested URL, user-agent, timestamp) are retained briefly for
+      operational and security purposes.
+    </p>
+    <p>
+      The public pages load Google Analytics (gtag.js, measurement ID
+      <code>G-VNQ6ZEYEEQ</code>) so that ISD can understand aggregate usage of the tool
+      &mdash; how many people visit, which pages they read, and which countries traffic
+      comes from. Google Analytics sets first-party cookies (<code>_ga</code>,
+      <code>_ga_&lt;id&gt;</code>) and passes an IP-address-derived location to Google as
+      a data processor. We do not use Google Analytics data for advertising, remarketing,
+      or profiling of individual visitors, and we do not link analytics data to any
+      account. If you would rather not be counted, browser-level protections
+      (Do-Not-Track headers, tracking-protection features, or ad blockers such as uBlock
+      Origin) all block the request; you can also install Google&rsquo;s
+      <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Analytics
+      opt-out add-on</a>.
     </p>
 
     <h2>What we process and where it comes from</h2>
@@ -250,6 +274,14 @@
           <td>GitHub</td>
           <td>Source-code hosting</td>
           <td>Code only; no production data and no secrets</td>
+          <td>United States</td>
+        </tr>
+        <tr>
+          <td>Google Analytics</td>
+          <td>Aggregate visitor analytics on the public site (measurement ID
+              <code>G-VNQ6ZEYEEQ</code>)</td>
+          <td>Visitor IP address (used by Google to derive country/region), user-agent,
+              page URL, and referrer. No account or personal identifier is sent by us</td>
           <td>United States</td>
         </tr>
       </tbody>
