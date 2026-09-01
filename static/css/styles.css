@@ -395,6 +395,49 @@ body {
 @media (max-width: 900px) { .viz-grid { grid-template-columns: 1fr; } }
 .viz-volume #volume-chart { padding: .75rem; min-height: 300px; flex: 1; }
 
+/* ---- Year zoom slider (visual only) under the volume chart ----
+   Two overlaid native range inputs acting as a dual-handle slider: the
+   inputs are transparent with pointer-events only on their thumbs, over a
+   thin track line with a highlighted fill between the handles. */
+.year-slider,
+.viz-grid > .card > div.year-slider {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 1rem .75rem 1rem;
+}
+.ys-label {
+  font-size: 11px; font-weight: 600; color: #5C6771;
+  min-width: 30px; text-align: center;
+}
+.ys-track { position: relative; flex: 1; height: 16px; }
+.ys-track::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%;
+  height: 2px; transform: translateY(-50%);
+  background: rgba(0,0,0,0.15); border-radius: 1px;
+}
+.ys-fill {
+  position: absolute; top: 50%; height: 2px; transform: translateY(-50%);
+  background: var(--isd-red); border-radius: 1px; pointer-events: none;
+}
+.ys-track input[type="range"] {
+  position: absolute; left: 0; top: 0; width: 100%; height: 16px; margin: 0;
+  -webkit-appearance: none; appearance: none;
+  background: transparent; pointer-events: none;
+}
+.ys-track input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; pointer-events: auto;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--isd-red);
+  cursor: grab; box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.ys-track input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--isd-red);
+  cursor: grab; box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.ys-track input[type="range"]::-moz-range-track { background: transparent; }
+
 /* ---- Entity controls ---- */
 .ent-controls {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;

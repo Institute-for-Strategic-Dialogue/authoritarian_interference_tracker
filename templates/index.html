@@ -186,12 +186,21 @@
     <div class="viz-grid">
       <section class="card viz-volume" style="--card-accent: var(--isd-red);">
         <div class="card-title">
-          VOLUME OVER TIME <span class="sub">by threat actor &middot; slider crops view only, for screenshots</span>
+          VOLUME OVER TIME <span class="sub">by threat actor &middot; slider zooms view only, for screenshots</span>
           <span class="info-tip" tabindex="0"
                 data-tip="Each multi-year incident contributes once to every year it spans, per actor. Totals can exceed unique incident counts because a single long-running incident shows up in every year it was active."
                 aria-label="Counts info">i</span>
         </div>
         <div id="volume-chart"></div>
+        <div class="year-slider">
+          <span class="ys-label" id="ys-start-label">Pre</span>
+          <div class="ys-track">
+            <div class="ys-fill" id="ys-fill"></div>
+            <input id="ys-start" type="range" aria-label="Zoom start year" />
+            <input id="ys-end" type="range" aria-label="Zoom end year" />
+          </div>
+          <span class="ys-label" id="ys-end-label"></span>
+        </div>
       </section>
 
       <section class="card viz-sankey" style="--card-accent: var(--isd-coral);">
