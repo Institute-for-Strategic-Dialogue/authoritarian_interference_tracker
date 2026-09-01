@@ -475,7 +475,8 @@ function renderVolumeChart(rows) {
   const container = document.querySelector(".viz-volume");
   const width = Math.max(300, container.clientWidth - 32);
   const height = Math.max(300, container.clientHeight - 40);
-  const margin = { top: 20, right: 16, bottom: 35, left: 40 };
+  // Extra bottom margin hosts the year-range slider strip below the x axis.
+  const margin = { top: 20, right: 16, bottom: 78, left: 40 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
 
@@ -629,6 +630,104 @@ function renderVolumeChart(rows) {
       .attr("stroke", ac).attr("stroke-width", 1.5);
     lx += tw + 20;
   });
+
+  // ---- Year-range slider (d3 brush) below the chart ----
+  // The slider's domain is fixed at 2014..CURRENT_YEAR regardless of the
+  // currently filtered data, so narrowing the range doesn't collapse the
+  // slider's own scale. It drives the same start/end filters as the year
+  // inputs in the filter bar; a full-width selection means "no year filter"
+  // (which also keeps Pre-2014 data included).
+  const SLIDER_MIN = 2014;
+  const sliderX = d3.scaleLinear().domain([SLIDER_MIN, CURRENT_YEAR]).range([0, innerW]);
+  const sliderG = g.append("g").attr("transform", `translate(0,${innerH + 42})`);
+
+  // Track with a tick dot per year
+  sliderG.append("line")
+    .attr("x1", 0).attr("x2", innerW)
+    .attr("stroke", "rgba(0,0,0,0.15)").attr("stroke-width", 2).attr("stroke-linecap", "round");
+  d3.range(SLIDER_MIN, CURRENT_YEAR + 1).forEach(yr => {
+    sliderG.append("circle")
+      .attr("cx", sliderX(yr)).attr("cy", 0).attr("r", 2)
+      .attr("fill", "rgba(0,0,0,0.2)");
+  });
+
+  const startLabel = sliderG.append("text")
+    .attr("y", 18).attr("text-anchor", "middle")
+    .style("font-size", "11px").style("font-weight", "600").style("fill", "#5C6771");
+  const endLabel = sliderG.append("text")
+    .attr("y", 18).attr("text-anchor", "middle")
+    .style("font-size", "11px").style("font-weight", "600").style("fill", "#5C6771");
+
+  function labelYears(y0, y1) {
+    startLabel.attr("x", sliderX(y0)).text(y0);
+    endLabel.attr("x", sliderX(y1)).text(y1);
+    // Merge labels when the handles meet so they don't overprint
+    const overlap = Math.abs(sliderX(y1) - sliderX(y0)) < 34;
+    if (overlap && y0 === y1) { endLabel.text(""); }
+    else if (overlap) { startLabel.text(`${y0}–${y1}`).attr("x", (sliderX(y0) + sliderX(y1)) / 2); endLabel.text(""); }
+  }
+
+  function pixelsToYears(sel) {
+    let y0 = Math.round(sliderX.invert(sel[0]));
+    let y1 = Math.round(sliderX.invert(sel[1]));
+    y0 = Math.max(SLIDER_MIN, Math.min(CURRENT_YEAR, y0));
+    y1 = Math.max(y0, Math.min(CURRENT_YEAR, y1));
+    return [y0, y1];
+  }
+
+  const brush = d3.brushX()
+    .extent([[0, -10], [innerW, 10]])
+    .on("brush", (event) => {
+      if (!event.selection) return;
+      const [y0, y1] = pixelsToYears(event.selection);
+      labelYears(y0, y1);
+    })
+    .on("end", (event) => {
+      if (!event.sourceEvent) return; // ignore programmatic moves
+      if (!event.selection) {
+        // Click outside the selection clears it → back to all years
+        brushG.call(brush.move, [0, innerW]);
+        labelYears(SLIDER_MIN, CURRENT_YEAR);
+        applyYearRange(null, null);
+        return;
+      }
+      const [y0, y1] = pixelsToYears(event.selection);
+      // Snap the handles to whole years (min width keeps a single-year
+      // selection grabbable instead of collapsing to zero and vanishing)
+      const px0 = sliderX(y0);
+      const px1 = Math.max(sliderX(y1), px0 + 4);
+      brushG.call(brush.move, [px0, px1]);
+      labelYears(y0, y1);
+      applyYearRange(
+        y0 <= SLIDER_MIN ? null : y0,
+        y1 >= CURRENT_YEAR ? null : y1
+      );
+    });
+
+  function applyYearRange(start, end) {
+    if (state.filters.start === start && state.filters.end === end) return;
+    state.filters.start = start;
+    state.filters.end = end;
+    $("#start-year").value = start ?? "";
+    $("#end-year").value = end ?? "";
+    state.page = 1;
+    refresh();
+  }
+
+  const brushG = sliderG.append("g").call(brush);
+  brushG.select(".selection")
+    .style("fill", "var(--isd-red, #C7074D)").attr("fill-opacity", 0.18)
+    .style("stroke", "var(--isd-red, #C7074D)").attr("stroke-opacity", 0.7)
+    .attr("rx", 5);
+  brushG.selectAll(".handle")
+    .style("fill", "#fff")
+    .style("stroke", "var(--isd-red, #C7074D)").attr("stroke-width", 1.5);
+
+  // Initialise from the active filters (clamped into the slider's domain)
+  const initStart = state.filters.start ? Math.min(Math.max(state.filters.start, SLIDER_MIN), CURRENT_YEAR) : SLIDER_MIN;
+  const initEnd = state.filters.end ? Math.min(Math.max(state.filters.end, initStart), CURRENT_YEAR) : CURRENT_YEAR;
+  brushG.call(brush.move, [sliderX(initStart), Math.max(sliderX(initEnd), sliderX(initStart) + 4)]);
+  labelYears(initStart, initEnd);
 }
 
 // ========================================================================
@@ -995,9 +1094,10 @@ function initMap() {
   if (map) return map;
   map = L.map("map", { scrollWheelZoom: true, worldCopyJump: true }).setView([25, 0], 2);
 
+  // CARTO raster basemaps now require an API key (free tier: 5M tiles/month).
   L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    { maxZoom: 18, attribution: '&copy; OpenStreetMap &copy; CARTO' }
+    "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2pbw_1_3be480ab30ad43f1000ecc0b",
+    { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' }
   ).addTo(map);
 
   clusterLayer = L.markerClusterGroup({
