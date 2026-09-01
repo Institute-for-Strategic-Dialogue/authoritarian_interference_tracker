@@ -463,6 +463,11 @@ function clearAll() {
 // Incidents aren't discrete by calendar year — campaigns roll between years.
 // A stacked area reads that continuity better than discrete bars.
 // ========================================================================
+// Visual-only year crop for the volume chart, kept across re-renders
+// (resize, filter changes). null = show everything. Stored as data-space
+// year values; clamped into the current domain on each render.
+let volVisibleRange = null;
+
 function renderVolumeChart(rows) {
   const el = d3.select("#volume-chart");
   el.selectAll("*").remove();
@@ -474,9 +479,11 @@ function renderVolumeChart(rows) {
 
   const container = document.querySelector(".viz-volume");
   const width = Math.max(300, container.clientWidth - 32);
-  const height = Math.max(300, container.clientHeight - 40);
+  // Cap the height — the flex-stretched container tracks the (taller) sankey
+  // card, which read as too tall once the slider strip was added below.
+  const height = Math.max(280, Math.min(340, container.clientHeight - 40));
   // Extra bottom margin hosts the year-range slider strip below the x axis.
-  const margin = { top: 20, right: 16, bottom: 78, left: 40 };
+  const margin = { top: 20, right: 16, bottom: 62, left: 40 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
 
@@ -548,10 +555,19 @@ function renderVolumeChart(rows) {
     .y1(d => y(d[1]))
     .curve(d3.curveMonotoneX);
 
+  // Areas live in a clipped group so the year slider below can visually
+  // crop them (screenshot mode) without touching the data or filters.
+  const clipId = "vol-clip";
+  svg.append("defs").append("clipPath").attr("id", clipId)
+    .append("rect").attr("id", "vol-clip-rect")
+    .attr("x", 0).attr("y", -margin.top)
+    .attr("width", innerW).attr("height", innerH + margin.top + 2);
+  const areaG = g.append("g").attr("clip-path", `url(#${clipId})`);
+
   series.forEach(s => {
     const actorName = s.key;
     const color = actorColor(actorName);
-    g.append("path")
+    areaG.append("path")
       .datum(s)
       .attr("class", "vol-area")
       .attr("d", area)
@@ -587,6 +603,10 @@ function renderVolumeChart(rows) {
     const yr = Math.round(x.invert(mx));
     const point = stackData.find(d => d.year === yr);
     if (!point) { hideFloatingTip(); guide.style("display", "none"); return; }
+    // Don't tooltip years hidden by the visual crop slider
+    if (volVisibleRange && (yr < volVisibleRange[0] || yr > volVisibleRange[1])) {
+      hideFloatingTip(); guide.style("display", "none"); return;
+    }
     guide.attr("x1", x(yr)).attr("x2", x(yr)).style("display", "");
     const yearLabel = (yr === preYearVal && hasPre) ? "Pre-2014" : yr;
     const lines = actors
@@ -631,88 +651,81 @@ function renderVolumeChart(rows) {
     lx += tw + 20;
   });
 
-  // ---- Year-range slider (d3 brush) below the chart ----
-  // The slider's domain is fixed at 2014..CURRENT_YEAR regardless of the
-  // currently filtered data, so narrowing the range doesn't collapse the
-  // slider's own scale. It drives the same start/end filters as the year
-  // inputs in the filter bar; a full-width selection means "no year filter"
-  // (which also keeps Pre-2014 data included).
-  const SLIDER_MIN = 2014;
-  const sliderX = d3.scaleLinear().domain([SLIDER_MIN, CURRENT_YEAR]).range([0, innerW]);
-  const sliderG = g.append("g").attr("transform", `translate(0,${innerH + 42})`);
+  // ---- Year-range slider (visual crop only) below the chart ----
+  // Purely presentational: brushing clips the areas to the selected years so
+  // you can take a clean screenshot of a period of interest. It does NOT
+  // filter the data or touch the Start/End filters — the slider is labelled
+  // as such. Uses the chart's own x scale, so "Pre" is croppable too.
+  const domainMin = yearsForData[0];
+  const domainMax = yearsForData[yearsForData.length - 1];
+  const fmtYr = yr => (yr === preYearVal && hasPre) ? "Pre" : yr;
+  const sliderG = g.append("g").attr("transform", `translate(0,${innerH + 34})`);
 
   // Track with a tick dot per year
   sliderG.append("line")
     .attr("x1", 0).attr("x2", innerW)
     .attr("stroke", "rgba(0,0,0,0.15)").attr("stroke-width", 2).attr("stroke-linecap", "round");
-  d3.range(SLIDER_MIN, CURRENT_YEAR + 1).forEach(yr => {
+  yearsForData.forEach(yr => {
     sliderG.append("circle")
-      .attr("cx", sliderX(yr)).attr("cy", 0).attr("r", 2)
+      .attr("cx", x(yr)).attr("cy", 0).attr("r", 2)
       .attr("fill", "rgba(0,0,0,0.2)");
   });
 
+  // The "visual crop only" caption lives in the card title, not the SVG,
+  // so it can't collide with the handle year labels.
   const startLabel = sliderG.append("text")
-    .attr("y", 18).attr("text-anchor", "middle")
+    .attr("y", 22).attr("text-anchor", "middle")
     .style("font-size", "11px").style("font-weight", "600").style("fill", "#5C6771");
   const endLabel = sliderG.append("text")
-    .attr("y", 18).attr("text-anchor", "middle")
+    .attr("y", 22).attr("text-anchor", "middle")
     .style("font-size", "11px").style("font-weight", "600").style("fill", "#5C6771");
 
   function labelYears(y0, y1) {
-    startLabel.attr("x", sliderX(y0)).text(y0);
-    endLabel.attr("x", sliderX(y1)).text(y1);
-    // Merge labels when the handles meet so they don't overprint
-    const overlap = Math.abs(sliderX(y1) - sliderX(y0)) < 34;
-    if (overlap && y0 === y1) { endLabel.text(""); }
-    else if (overlap) { startLabel.text(`${y0}–${y1}`).attr("x", (sliderX(y0) + sliderX(y1)) / 2); endLabel.text(""); }
+    startLabel.attr("x", x(y0)).text(fmtYr(y0));
+    endLabel.attr("x", x(y1)).text(fmtYr(y1));
+    // Merge labels when the handles get close so they don't overprint
+    if (Math.abs(x(y1) - x(y0)) < 40) {
+      startLabel.text(`${fmtYr(y0)}–${fmtYr(y1)}`).attr("x", (x(y0) + x(y1)) / 2);
+      endLabel.text("");
+    }
+  }
+
+  const clipRect = svg.select("#vol-clip-rect");
+  function applyCrop(y0, y1) {
+    volVisibleRange = (y0 <= domainMin && y1 >= domainMax) ? null : [y0, y1];
+    clipRect.attr("x", x(y0)).attr("width", Math.max(0, x(y1) - x(y0)));
+    labelYears(y0, y1);
   }
 
   function pixelsToYears(sel) {
-    let y0 = Math.round(sliderX.invert(sel[0]));
-    let y1 = Math.round(sliderX.invert(sel[1]));
-    y0 = Math.max(SLIDER_MIN, Math.min(CURRENT_YEAR, y0));
-    y1 = Math.max(y0, Math.min(CURRENT_YEAR, y1));
+    let y0 = Math.round(x.invert(sel[0]));
+    let y1 = Math.round(x.invert(sel[1]));
+    y0 = Math.max(domainMin, Math.min(domainMax, y0));
+    y1 = Math.max(y0, Math.min(domainMax, y1));
+    // An area chart needs at least a one-year span to draw anything
+    if (y1 === y0) { if (y1 < domainMax) y1 += 1; else y0 -= 1; }
     return [y0, y1];
   }
 
   const brush = d3.brushX()
-    .extent([[0, -10], [innerW, 10]])
+    .extent([[0, -8], [innerW, 8]])
     .on("brush", (event) => {
-      if (!event.selection) return;
+      if (!event.selection || !event.sourceEvent) return;
       const [y0, y1] = pixelsToYears(event.selection);
-      labelYears(y0, y1);
+      applyCrop(y0, y1); // live-crop while dragging
     })
     .on("end", (event) => {
       if (!event.sourceEvent) return; // ignore programmatic moves
       if (!event.selection) {
-        // Click outside the selection clears it → back to all years
+        // Click outside the selection clears it → show everything
         brushG.call(brush.move, [0, innerW]);
-        labelYears(SLIDER_MIN, CURRENT_YEAR);
-        applyYearRange(null, null);
+        applyCrop(domainMin, domainMax);
         return;
       }
       const [y0, y1] = pixelsToYears(event.selection);
-      // Snap the handles to whole years (min width keeps a single-year
-      // selection grabbable instead of collapsing to zero and vanishing)
-      const px0 = sliderX(y0);
-      const px1 = Math.max(sliderX(y1), px0 + 4);
-      brushG.call(brush.move, [px0, px1]);
-      labelYears(y0, y1);
-      applyYearRange(
-        y0 <= SLIDER_MIN ? null : y0,
-        y1 >= CURRENT_YEAR ? null : y1
-      );
+      brushG.call(brush.move, [x(y0), x(y1)]); // snap handles to whole years
+      applyCrop(y0, y1);
     });
-
-  function applyYearRange(start, end) {
-    if (state.filters.start === start && state.filters.end === end) return;
-    state.filters.start = start;
-    state.filters.end = end;
-    $("#start-year").value = start ?? "";
-    $("#end-year").value = end ?? "";
-    state.page = 1;
-    refresh();
-  }
 
   const brushG = sliderG.append("g").call(brush);
   brushG.select(".selection")
@@ -723,11 +736,15 @@ function renderVolumeChart(rows) {
     .style("fill", "#fff")
     .style("stroke", "var(--isd-red, #C7074D)").attr("stroke-width", 1.5);
 
-  // Initialise from the active filters (clamped into the slider's domain)
-  const initStart = state.filters.start ? Math.min(Math.max(state.filters.start, SLIDER_MIN), CURRENT_YEAR) : SLIDER_MIN;
-  const initEnd = state.filters.end ? Math.min(Math.max(state.filters.end, initStart), CURRENT_YEAR) : CURRENT_YEAR;
-  brushG.call(brush.move, [sliderX(initStart), Math.max(sliderX(initEnd), sliderX(initStart) + 4)]);
-  labelYears(initStart, initEnd);
+  // Restore any crop from the previous render, clamped into this domain
+  let initStart = domainMin, initEnd = domainMax;
+  if (volVisibleRange) {
+    initStart = Math.max(domainMin, Math.min(volVisibleRange[0], domainMax));
+    initEnd = Math.max(initStart, Math.min(volVisibleRange[1], domainMax));
+    if (initEnd === initStart) { initStart = domainMin; initEnd = domainMax; }
+  }
+  brushG.call(brush.move, [x(initStart), x(initEnd)]);
+  applyCrop(initStart, initEnd);
 }
 
 // ========================================================================
