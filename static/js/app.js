@@ -1706,7 +1706,8 @@ function openModal(inc) {
     });
   });
 
-  $("#incident-modal-overlay").style.display = "flex";
+  showSlideover();
+  $("#incident-modal").scrollTop = 0; // related-incident jumps start at the top
   document.body.style.overflow = "hidden";
 
   // Push incident permalink to URL
@@ -1714,8 +1715,27 @@ function openModal(inc) {
   history.pushState({ modal: slug }, "", `/incident/${slug}`);
 }
 
+// Slide-in/out choreography: display toggles can't animate, so display:flex
+// goes on first, then .open a frame later for the enter transition; on close
+// .open comes off and the overlay hides after the exit transition finishes.
+function showSlideover() {
+  const ov = $("#incident-modal-overlay");
+  ov.style.display = "flex";
+  void ov.offsetWidth; // force reflow so the enter transition actually runs
+  ov.classList.add("open");
+}
+
+function hideSlideover() {
+  const ov = $("#incident-modal-overlay");
+  ov.classList.remove("open");
+  setTimeout(() => {
+    if (!ov.classList.contains("open")) ov.style.display = "none";
+  }, 280);
+}
+
 function closeModal() {
-  $("#incident-modal-overlay").style.display = "none";
+  if (!$("#incident-modal-overlay").classList.contains("open")) return;
+  hideSlideover();
   document.body.style.overflow = "";
 
   // Restore the filter URL (or just root)
@@ -1744,10 +1764,10 @@ function toggleSet(set, val) {
   if (set.has(val)) set.delete(val); else set.add(val);
 }
 
-// ---- Browser back button closes modal ----
+// ---- Browser back button closes the slideover ----
 window.addEventListener("popstate", () => {
-  if ($("#incident-modal-overlay").style.display === "flex") {
-    $("#incident-modal-overlay").style.display = "none";
+  if ($("#incident-modal-overlay").classList.contains("open")) {
+    hideSlideover();
     document.body.style.overflow = "";
   }
 });
