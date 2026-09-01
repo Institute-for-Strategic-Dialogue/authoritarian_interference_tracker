@@ -1690,12 +1690,25 @@ function openModal(inc) {
     </div>
     ` : ""}
 
-    <div class="modal-footer">
-      <a href="/incident/${inc.slug || inc.id}" title="Permalink">/incident/${inc.slug || inc.id}</a>
-      <button class="btn-copy" onclick="navigator.clipboard.writeText(window.location.origin+'/incident/${inc.slug || inc.id}').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy link',1500);})">Copy link</button>
-      ${adminLink}
-    </div>
+    ${adminLink ? `<div class="modal-footer">${adminLink}</div>` : ""}
   `;
+
+  // Share button (next to the close X) copies the incident permalink
+  const shareBtn = $("#modal-share");
+  if (shareBtn) {
+    shareBtn.classList.remove("copied");
+    shareBtn.title = "Copy share link";
+    shareBtn.onclick = () => {
+      navigator.clipboard.writeText(`${window.location.origin}/incident/${inc.slug || inc.id}`).then(() => {
+        shareBtn.classList.add("copied");
+        shareBtn.title = "Link copied!";
+        setTimeout(() => {
+          shareBtn.classList.remove("copied");
+          shareBtn.title = "Copy share link";
+        }, 1500);
+      });
+    };
+  }
 
   // Bind related incident clicks
   body.querySelectorAll(".modal-related").forEach(el => {
