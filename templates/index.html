@@ -131,9 +131,16 @@
     <div class="filter-bar container">
       <!-- Search row (always visible) -->
       <div class="filter-row filter-row--search">
-        <input id="search" type="text" placeholder='Search — try "exact phrase", OR, or -exclude' autocomplete="off" />
-        <span class="info-tip search-help" data-tip='Boolean search: bare words are AND-ed. Use "quotes" for exact phrases, OR for alternatives, and a leading - to exclude. Example: "election interference" OR sabotage -ukraine'>?</span>
+        <input id="search" type="text" placeholder='Search incidents, e.g. sabotage OR arson' autocomplete="off"
+               aria-describedby="search-explain" />
         <button id="filter-toggle" class="filter-toggle" aria-label="Toggle filters">&#9660;</button>
+      </div>
+      <!-- Search syntax, always visible; app.js rewrites it to explain the current query. -->
+      <div id="search-explain" class="search-explain" aria-live="polite">
+        <span class="search-explain__rule">Every word must match.</span>
+        Use <button type="button" class="search-eg" data-q="sabotage OR arson">OR</button> for either,
+        <button type="button" class="search-eg" data-q='"election interference"'>"quotes"</button> for a phrase,
+        <button type="button" class="search-eg" data-q="disinformation -ukraine">-word</button> to exclude.
       </div>
 
       <!-- Collapsible filters -->

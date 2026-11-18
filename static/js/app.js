@@ -280,8 +280,20 @@ function bindEvents() {
   $("#search").addEventListener("input", (e) => {
     state.filters.q = e.target.value.trim();
     state.page = 1;
+    explainSearch();
     debounceRefresh();
   });
+
+  // Example chips and the "match any" fix in the search explainer.
+  $("#search-explain").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-q]");
+    if (!btn) return;
+    const input = $("#search");
+    input.value = btn.dataset.q;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.focus();
+  });
+  explainSearch();
 
   // Year inputs
   $("#start-year").addEventListener("change", () => {
@@ -2456,3 +2468,54 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ---- Boot ----
 document.addEventListener("DOMContentLoaded", init);
+
+// ---- Search explainer -------------------------------------------------------
+// Mirrors app.py _parse_search_query (websearch_to_tsquery semantics): bare
+// words AND'd, OR splits alternatives, "quotes" = phrase, -word excludes.
+function parseSearchForDisplay(q) {
+  const tokens = [];
+  const re = /(-?)"([^"]*)"?|(\S+)/g;
+  let m;
+  while ((m = re.exec(q)) !== null) {
+    if (m[3] !== undefined) {
+      const raw = m[3];
+      if (raw.toUpperCase() === "OR") { tokens.push({ or: true }); continue; }
+      const neg = raw.startsWith("-") && raw.length > 1;
+      tokens.push({ text: neg ? raw.slice(1) : raw, neg, phrase: false });
+    } else if (m[2]) {
+      tokens.push({ text: m[2], neg: m[1] === "-", phrase: true });
+    }
+  }
+  const groups = [[]];
+  tokens.forEach((t) => (t.or ? groups.push([]) : groups[groups.length - 1].push(t)));
+  return groups.filter((g) => g.length);
+}
+
+function explainSearch() {
+  const box = document.getElementById("search-explain");
+  const input = document.getElementById("search");
+  if (!box || !input) return;
+  if (!box.dataset.defaultHtml) box.dataset.defaultHtml = box.innerHTML;
+  const q = input.value.trim();
+  const groups = q ? parseSearchForDisplay(q) : [];
+  if (!groups.length) { box.innerHTML = box.dataset.defaultHtml; return; }
+
+  const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const term = (t) => `<span class="search-term${t.neg ? " is-excluded" : ""}">${t.phrase ? "&ldquo;" + esc(t.text) + "&rdquo;" : esc(t.text)}</span>`;
+  const describe = (g) => {
+    const inc = g.filter((t) => !t.neg), exc = g.filter((t) => t.neg);
+    let s = inc.length ? inc.map(term).join(inc.length > 1 ? " and " : "") : "anything";
+    if (exc.length) s += " but not " + exc.map(term).join(" or ");
+    return s;
+  };
+  let html = "Showing incidents mentioning " + groups.map(describe).join(' <span class="search-or">or</span> ') + ".";
+
+  // Several bare words with no OR: the common surprise. Offer the OR version.
+  const only = groups.length === 1 ? groups[0] : null;
+  const bare = only ? only.filter((t) => !t.neg && !t.phrase) : [];
+  if (only && bare.length > 1 && bare.length === only.length) {
+    const anyQ = bare.map((t) => t.text).join(" OR ");
+    html += ` <button type="button" class="search-fix" data-q="${esc(anyQ)}">Match any word instead</button>`;
+  }
+  box.innerHTML = html;
+}
