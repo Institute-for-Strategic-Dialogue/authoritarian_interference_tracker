@@ -36,7 +36,7 @@ body {
 .page-header .logo-area { flex: 0 0 auto; }
 .page-header .brand > p { max-width: none !important; width: auto; }
 .brand h1 {
-  color: var(--cv-ink);
+  color: var(--cv-signal);
   font-family: var(--cv-sans);
   font-weight: 700;
   font-size: clamp(26px, 3.4vw, 46px);
