@@ -42,9 +42,12 @@ ACTOR_DISPLAY = {
 }
 
 COUNTRY_NAMES = {
-    # Multilateral target — applied when an operation targets UN, EU,
-    # NATO, or G7 as institutions rather than a single member state.
-    "MULTILATERAL": "EU, NATO, & Other Multilateral Organizations",
+    # Multilateral targets — an operation against the organization as an
+    # institution rather than a single member state. EU and NATO have their
+    # own codes; MULTILATERAL covers the rest (UN, OSCE, G7, ...).
+    "EU": "European Union",
+    "NATO": "NATO",
+    "MULTILATERAL": "Other Multilateral Organizations",
     "AL": "Albania", "AT": "Austria", "AU": "Australia", "BA": "Bosnia and Herzegovina",
     "BE": "Belgium", "BG": "Bulgaria", "BY": "Belarus", "CA": "Canada",
     "CH": "Switzerland", "CY": "Cyprus", "CZ": "Czechia", "DE": "Germany",
@@ -316,10 +319,23 @@ _MULTI_EU_RE = re.compile(
 _MULTI_NATO_RE = re.compile(r"\b(NATO|Atlantic Alliance|Allied Command)\b", re.IGNORECASE)
 
 
+MULTILATERAL_CODES = {"EU", "NATO", "MULTILATERAL"}
+
+
 def _multilateral_group(inc) -> str | None:
-    """Return 'EU', 'NATO', or 'Other' for a MULTILATERAL-tagged incident,
-    None for incidents not tagged MULTILATERAL."""
-    if "MULTILATERAL" not in (inc.get("country_codes") or []):
+    """Return 'EU', 'NATO', or 'Other' for an incident targeting a
+    multilateral organization, None otherwise. Precedence EU > NATO > Other
+    so each incident lands in one bucket.
+
+    Incidents carry explicit EU / NATO codes since the code split. Older ones
+    tagged only MULTILATERAL (not yet re-tagged) fall back to a keyword scan.
+    """
+    codes = set(inc.get("country_codes") or [])
+    if "EU" in codes:
+        return "EU"
+    if "NATO" in codes:
+        return "NATO"
+    if "MULTILATERAL" not in codes:
         return None
     text = f"{inc.get('title') or ''}  {inc.get('summary') or ''}"
     if _MULTI_EU_RE.search(text):
@@ -422,9 +438,8 @@ def _filter_incidents(incidents, filters):
             if not set(inc.get("country_codes", [])).intersection(region_codes):
                 continue
         if filters.get("mgroup"):
-            # mgroup restricts to MULTILATERAL incidents in one of EU/NATO/Other.
-            # Non-MULTILATERAL incidents (country_codes lacks "MULTILATERAL") are
-            # always excluded once this filter is set.
+            # mgroup restricts to multilateral-target incidents in one of
+            # EU/NATO/Other; incidents with no multilateral code are excluded.
             if _multilateral_group(inc) != filters["mgroup"]:
                 continue
         out.append(inc)
@@ -661,8 +676,6 @@ def api_incidents():
         "Other": {"_total": 0},
     }
     for inc in filtered:
-        if "MULTILATERAL" not in (inc.get("country_codes") or []):
-            continue
         group = _multilateral_group(inc)
         if not group:
             continue
@@ -680,7 +693,7 @@ def api_incidents():
     # silently dropped by the map's `if (!m) continue;`. Log loudly and ship
     # the set in the response so the frontend can warn too.
     served_countries = {r["country"] for r in country_rows if r.get("country")}
-    unmapped_countries = sorted(served_countries - set(COUNTRY_CENTROIDS.keys()) - {"MULTILATERAL"})
+    unmapped_countries = sorted(served_countries - set(COUNTRY_CENTROIDS.keys()) - MULTILATERAL_CODES)
     if unmapped_countries:
         app.logger.warning(
             "Incidents reference countries with no centroid (won't appear on the map): %s. "
