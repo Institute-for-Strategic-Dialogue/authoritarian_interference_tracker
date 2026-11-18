@@ -75,6 +75,7 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <link rel="stylesheet" href="/static/css/styles.css?v=20260722-1"/>
+  <link rel="stylesheet" href="/static/css/caversham.css?v=20261118-1"/>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -193,7 +194,7 @@
     <div class="viz-grid">
       <section class="card viz-volume" style="--card-accent: var(--isd-red);">
         <div class="card-title">
-          VOLUME OVER TIME <span class="sub">by threat actor &middot; slider zooms view only, for screenshots</span>
+          Volume over time <span class="sub">by threat actor &middot; slider zooms view only, for screenshots</span>
           <span class="info-tip" tabindex="0"
                 data-tip="Each multi-year incident contributes once to every year it spans, per actor. Totals can exceed unique incident counts because a single long-running incident shows up in every year it was active."
                 aria-label="Counts info">i</span>
@@ -212,7 +213,7 @@
 
       <section class="card viz-sankey" style="--card-accent: var(--isd-coral);">
         <div class="card-title">
-          INCIDENT FLOW <span class="sub">type &rarr; actor &rarr; target country</span>
+          Incident flow <span class="sub">type &rarr; actor &rarr; target country</span>
           <span class="info-tip" tabindex="0"
                 data-tip="Band thickness reflects activity (each incident counted once per type-actor-country path it touches). Labels under each node show unique incident count, so the headline number balances across columns."
                 aria-label="Counts info">i</span>
@@ -224,7 +225,7 @@
     <!-- TTP treemap (thin, full width) -->
     <section class="card" style="margin-top:.5rem;--card-accent: var(--isd-blue);">
       <div class="card-title">
-        TACTICS &amp; TECHNIQUES <span class="sub">grouped by incident type, sized by frequency</span>
+        Tactics &amp; techniques <span class="sub">grouped by incident type, sized by frequency</span>
         <span class="info-tip" tabindex="0"
               data-tip="A TTP is the specific tradecraft used (e.g. 'inauthentic amplification'). Each TTP is grouped under its parent incident type. The data layer keeps the parent type attached whenever a TTP is set."
               aria-label="Counts info">i</span>
@@ -237,7 +238,7 @@
 
     <!-- 4. Map (full width) -->
     <section class="card mapcard" style="--card-accent: var(--isd-purple);">
-      <div class="card-title">GLOBAL DISTRIBUTION <span class="sub">by actor share</span></div>
+      <div class="card-title">Global distribution <span class="sub">by actor share</span></div>
       <div id="map"></div>
       <!-- Stacked-segment bar showing the EU/NATO/Other split of
            MULTILATERAL-tagged incidents. Hidden when there are none in
@@ -252,7 +253,7 @@
     <section class="card entity-section" style="margin-top:1rem;--card-accent: var(--isd-mint);">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <span>
-          ENTITY RELATIONSHIPS <span class="sub">co-occurrence by incident</span>
+          Entity relationships <span class="sub">co-occurrence by incident</span>
           <span class="info-tip" tabindex="0"
                 data-tip="Chord arcs around the perimeter are entities sized by incident count. Lines between arcs show co-occurrence in the same incident. The network view is an alternate force-directed layout — toggle on the right."
                 aria-label="Counts info">i</span>
@@ -320,7 +321,7 @@
     <!-- 7. Incident list -->
     <section class="card list-section" id="incident-list" style="scroll-margin-top:120px;--card-accent: var(--isd-red);">
       <div class="card-title">
-        INCIDENTS <span class="sub">reverse chronological</span>
+        Incidents <span class="sub">reverse chronological</span>
       </div>
       <div id="list"></div>
       <div class="pager">

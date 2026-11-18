@@ -1,0 +1,151 @@
+/* Caversham look (caversham.isd.ngo / propagandr design system), layered on
+   styles.css. Plates: white panels with an 8px coloured top rule and a large,
+   tight title; 2px near-black framing, square corners, IBM Plex Sans for
+   text and Space Mono for small uppercase labels. Load after styles.css. */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --cv-ink: #1C2024;
+  --cv-ink2: #5C6771;
+  --cv-ink3: #646D76;
+  --cv-panel: #FFFFFF;
+  --cv-tint: #F2EEE9;
+  --cv-rule: #E7E3DD;
+  --cv-rule2: #D6D2CB;
+  --cv-signal: #C7074D;
+  --cv-bar: 8px;
+  --cv-title: clamp(24px, 2.3vw, 34px);
+  --cv-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --cv-mono: 'Space Mono', ui-monospace, monospace;
+}
+
+body {
+  font-family: var(--cv-sans);
+  color: var(--cv-ink);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* ---- Masthead: a plate with the brand-red rule ---- */
+.page-header.container { padding-top: 1.25rem; padding-bottom: 0; }
+.page-header .brand {
+  background: var(--cv-panel);
+  border: 2px solid var(--cv-ink);
+  box-shadow: inset 0 var(--cv-bar) 0 var(--cv-signal);
+  padding: 30px 22px 20px;
+}
+.brand h1 {
+  color: var(--cv-ink);
+  font-family: var(--cv-sans);
+  font-weight: 700;
+  font-size: clamp(26px, 3.4vw, 46px);
+  line-height: .95;
+  letter-spacing: -0.03em;
+  text-transform: none;
+}
+.isd-logo-img { height: 48px; opacity: 1; }
+.meta-bar {
+  font-family: var(--cv-mono); font-size: 13px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--cv-ink3);
+  margin-top: .6rem; opacity: 1;
+}
+.meta-bar #total-count { color: var(--cv-signal); }
+.intro-blurb { font-size: 16px; line-height: 1.55; color: var(--cv-ink2); max-width: 78ch; margin-top: 1rem; }
+.counts-note, .intro-disclaimer {
+  border-radius: 0; font-size: 14px; max-width: 110ch;
+  border-left-width: 4px;
+}
+.counts-note { background: var(--cv-tint); border-left-color: var(--cv-ink2); color: var(--cv-ink2); }
+.counts-note strong, .counts-note em { color: var(--cv-ink); }
+
+/* ---- Filter bar ---- */
+.filter-bar-wrap {
+  background: rgba(250, 246, 242, .97);
+  border-bottom: 2px solid var(--cv-ink);
+}
+.filter-row--search #search {
+  border: 2px solid var(--cv-ink); border-radius: 0;
+  font-family: var(--cv-sans); font-size: 16px; padding: .5rem 4rem .5rem .9rem;
+}
+.filter-row--search #search:focus { border-color: var(--cv-signal); }
+.search-explain { font-size: 14px; }
+.search-explain .search-eg, .search-explain .search-term { border-radius: 0; border-width: 2px; border-color: var(--cv-rule2); }
+.search-explain .search-fix { border-radius: 0; border-width: 2px; }
+
+.filter-label, .filter-field label {
+  font-family: var(--cv-mono); font-size: 13px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--cv-ink3);
+}
+.pill {
+  border-radius: 0; border-width: 2px; font-family: var(--cv-sans);
+  font-size: 14px; font-weight: 600; letter-spacing: 0; padding: .25rem .7rem;
+}
+.pill:hover { transform: none; box-shadow: none; }
+.filter-field select, .filter-field input[type="number"] {
+  border: 2px solid var(--cv-rule2); border-radius: 0; font-size: 14px; height: 32px; padding: 0 .6rem;
+}
+.filter-field select:focus, .filter-field input[type="number"]:focus { border-color: var(--cv-ink); }
+.chip { border-radius: 0; border-width: 2px; font-size: 13px; }
+.btn, button.btn { border-radius: 0; }
+
+/* ---- Plates ---- */
+.card {
+  background: var(--cv-panel);
+  border: 2px solid var(--cv-ink);
+  box-shadow: inset 0 var(--cv-bar) 0 var(--card-accent, var(--cv-ink));
+  padding: 0 20px 20px;
+}
+.card-title {
+  margin: 0 0 14px;
+  padding: 28px 0 6px;
+  border: 0;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px;
+  font-family: var(--cv-sans);
+  font-size: var(--cv-title);
+  font-weight: 700;
+  line-height: .95;
+  letter-spacing: -0.04em;
+  text-transform: none;
+  color: var(--cv-ink);
+}
+.card-title .sub {
+  font-size: 14px; font-weight: 400; letter-spacing: 0; line-height: 1.4;
+  opacity: 1; color: var(--cv-ink3); text-transform: none;
+}
+
+/* Side-by-side plates read as one mosaic: 2px ink between them. */
+.viz-grid {
+  gap: 2px; background: var(--cv-ink); border: 2px solid var(--cv-ink);
+  margin-top: 1.25rem;
+}
+.viz-grid > .card { border: 0; margin-bottom: 0; }
+main > .card { margin-top: 1.25rem !important; }
+
+/* ---- Incident list ---- */
+.incident {
+  border: 0; border-bottom: 1px solid var(--cv-rule);
+  border-left: 6px solid var(--card-accent, var(--cv-rule2));
+  border-radius: 0; box-shadow: none; background: var(--cv-panel);
+}
+.incident:hover { background: var(--cv-tint); box-shadow: none; transform: none; }
+.pager button, .pager a { border-radius: 0; }
+
+/* ---- Info tips and stamps ---- */
+.info-tip { border-radius: 0; background: var(--cv-ink2); }
+.info-tip:hover, .info-tip:focus { background: var(--cv-ink); }
+
+/* ---- Footer ---- */
+.page-footer { border-top: 2px solid var(--cv-ink); background: var(--cv-tint); }
+.footer-tag { font-family: var(--cv-mono); letter-spacing: .08em; }
+
+/* ---- Incident slideover ---- */
+.incident-modal { border-left: 2px solid var(--cv-ink); border-radius: 0; box-shadow: none; }
+.incident-modal .stamp {
+  font-family: var(--cv-mono); letter-spacing: .1em; border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  .page-header .brand { padding: 26px 16px 16px; }
+  .card { padding: 0 14px 14px; }
+}
